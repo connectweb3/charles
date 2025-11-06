@@ -1,0 +1,70 @@
+[
+  {
+    "pack_id": 1,
+    "pack_name": "Genesis Sigil Pack",
+    "description": "Balanced pack representing the origin of the Citadel. Designed for newcomers with classic Citadel cards.",
+    "cards_per_pack": 5,
+    "rarity_weights": {
+      "celestials": 0.001,
+      "mythic": 0.005,
+      "legendary": 0.01,
+      "epic": 0.05,
+      "rare": 0.20,
+      "uncommon": 0.30,
+      "common": 0.434
+    },
+    "front_image": "https://citadelofcharles.space/adaarcana/packs/genesis_front.png",
+    "back_image": "https://citadelofcharles.space/adaarcana/packs/genesis_back.png"
+  },
+  {
+    "pack_id": 2,
+    "pack_name": "Crawju Forge Pack",
+    "description": "Forged by Crawju engineers, this pack contains relics, tech cards, and constructs with higher rare odds.",
+    "cards_per_pack": 5,
+    "rarity_weights": {
+      "celestials": 0.001,
+      "mythic": 0.008,
+      "legendary": 0.015,
+      "epic": 0.07,
+      "rare": 0.25,
+      "uncommon": 0.30,
+      "common": 0.351
+    },
+    "front_image": "https://citadelofcharles.space/adaarcana/packs/crawju_front.png",
+    "back_image": "https://citadelofcharles.space/adaarcana/packs/crawju_back.png"
+  },
+  {
+    "pack_id": 3,
+    "pack_name": "Bison Dominion Pack",
+    "description": "Focuses on power and defense cards led by the Bison clans. Stronger odds for Epic and Legendary pulls.",
+    "cards_per_pack": 5,
+    "rarity_weights": {
+      "celestials": 0.002,
+      "mythic": 0.01,
+      "legendary": 0.025,
+      "epic": 0.10,
+      "rare": 0.28,
+      "uncommon": 0.25,
+      "common": 0.333
+    },
+    "front_image": "https://citadelofcharles.space/adaarcana/packs/bison_front.png",
+    "back_image": "https://citadelofcharles.space/adaarcana/packs/bison_back.png"
+  },
+  {
+    "pack_id": 4,
+    "pack_name": "Celestial Chain Pack",
+    "description": "Premium ADA ARCANA pack with the highest chances for Epic, Legendary, Mythic, and Celestial cards.",
+    "cards_per_pack": 5,
+    "rarity_weights": {
+      "celestials": 0.005,
+      "mythic": 0.025,
+      "legendary": 0.05,
+      "epic": 0.15,
+      "rare": 0.30,
+      "uncommon": 0.25,
+      "common": 0.195
+    },
+    "front_image": "https://citadelofcharles.space/adaarcana/packs/celestial_front.png",
+    "back_image": "https://citadelofcharles.space/adaarcana/packs/celestial_back.png"
+  }
+]

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Citadel of Charles</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --neon-blue: #00e89a;
+        --neon-pink: #5effc3;
+        --neon-yellow: #b3ff5a;
+        --ea-purple: #0b3d2e;
+        --bg-dark: #02140d
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box
+    }
+
+    body {
+        overflow: hidden;
+        background-color: var(--bg-dark);
+        font-family: Rajdhani, sans-serif;
+        color: #fff;
+        height: 100vh;
+        width: 100vw
+    }
+
+    #canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1
+    }
+
+    #ui-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between
+    }
+
+    .interactive-ui {
+        pointer-events: auto
+    }
+
+    nav {
+        padding: 2rem 4rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(180deg, rgba(0, 0, 0, .5) 0, transparent 100%)
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center
+    }
+
+    .logo img {
+        height: 48px;
+        width: auto;
+        filter: drop-shadow(0 0 12px rgba(0, 232, 154, .45))
+    }
+
+    .nav-links a {
+        color: rgba(255, 255, 255, .7);
+        text-decoration: none;
+        margin-left: 2rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        transition: .3s;
+        text-transform: uppercase
+    }
+
+    .nav-links a:hover {
+        color: var(--neon-pink);
+        text-shadow: 0 0 8px var(--neon-pink)
+    }
+
+    .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem
+    }
+
+    .menu-toggle {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid rgba(94, 255, 195, .35);
+        background: rgba(0, 232, 154, .12);
+        cursor: pointer;
+        transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+        position: relative
+    }
+
+    .menu-toggle:hover {
+        background: rgba(0, 232, 154, .25);
+        box-shadow: 0 0 15px rgba(94, 255, 195, .3)
+    }
+
+    .menu-toggle-icon,
+    .menu-toggle-icon::after,
+    .menu-toggle-icon::before {
+        display: block;
+        width: 24px;
+        height: 2px;
+        background: #e8fff4;
+        border-radius: 2px;
+        transition: transform .3s ease, opacity .3s ease
+    }
+
+    .menu-toggle-icon {
+        position: relative
+    }
+
+    .menu-toggle-icon::after,
+    .menu-toggle-icon::before {
+        content: "";
+        position: absolute;
+        left: 0
+    }
+
+    .menu-toggle-icon::before {
+        top: -8px
+    }
+
+    .menu-toggle-icon::after {
+        bottom: -8px
+    }
+
+    .menu-toggle[aria-expanded=true] .menu-toggle-icon {
+        background: 0 0
+    }
+
+    .menu-toggle[aria-expanded=true] .menu-toggle-icon::before {
+        transform: translateY(8px) rotate(45deg)
+    }
+
+    .menu-toggle[aria-expanded=true] .menu-toggle-icon::after {
+        transform: translateY(-8px) rotate(-45deg)
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0
+    }
+
+    .hero-content {
+        padding: 0 4rem;
+        max-width: 600px;
+        margin-bottom: 10vh
+    }
+
+    h1 {
+        font-family: Orbitron, sans-serif;
+        font-size: 4rem;
+        line-height: 1.1;
+        margin-bottom: 1rem;
+        background: linear-gradient(45deg, var(--neon-blue), var(--neon-pink));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 15px rgba(0, 232, 154, .3))
+    }
+
+    p.subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        color: rgba(255, 255, 255, .8)
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 1rem 2.5rem;
+        font-family: Orbitron, sans-serif;
+        font-weight: 700;
+        text-transform: uppercase;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: .3s;
+        cursor: pointer;
+        clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%)
+    }
+
+    .btn-primary {
+        background: var(--neon-blue);
+        color: #000;
+        border: 2px solid var(--neon-blue);
+        box-shadow: 0 0 20px rgba(0, 232, 154, .4);
+        margin-right: 1rem
+    }
+
+    .btn-primary:hover {
+        background: #fff;
+        box-shadow: 0 0 40px rgba(0, 232, 154, .8)
+    }
+
+    .btn-secondary {
+        background: 0 0;
+        color: #fff;
+        border: 2px solid rgba(255, 255, 255, .3);
+        backdrop-filter: blur(5px)
+    }
+
+    .btn-secondary:hover {
+        border-color: var(--neon-pink);
+        color: var(--neon-pink);
+        box-shadow: 0 0 20px rgba(94, 255, 195, .4)
+    }
+
+    .stats-bar {
+        display: flex;
+        gap: 3rem;
+        padding: 2rem 4rem;
+        background: linear-gradient(0deg, rgba(0, 0, 0, .8) 0, transparent 100%);
+        backdrop-filter: blur(5px);
+        border-top: 1px solid rgba(255, 255, 255, .1)
+    }
+
+    .stat-item h3 {
+        font-family: Orbitron, sans-serif;
+        font-size: 1.5rem;
+        color: var(--neon-yellow)
+    }
+
+    .stat-item p {
+        font-size: .9rem;
+        color: rgba(255, 255, 255, .6);
+        text-transform: uppercase
+    }
+
+    .sidebar {
+        position: absolute;
+        top: 22vh;
+        right: 4rem;
+        width: 240px;
+        padding: 1.5rem;
+        border-radius: 20px;
+        background: rgba(2, 20, 13, .82);
+        border: 1px solid rgba(94, 255, 195, .25);
+        box-shadow: 0 0 30px rgba(0, 232, 154, .25);
+        backdrop-filter: blur(14px);
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
+        z-index: 35
+    }
+
+    .sidebar-category h2 {
+        font-family: Orbitron, sans-serif;
+        letter-spacing: 2px;
+        font-size: 1rem;
+        color: var(--neon-pink);
+        text-transform: uppercase;
+        margin-bottom: .75rem
+    }
+
+    .sidebar-links {
+        display: flex;
+        flex-direction: column;
+        gap: .75rem
+    }
+
+    .sidebar-link {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .85rem 1rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-size: .95rem;
+        color: #e8fff4;
+        letter-spacing: 1px;
+        background: rgba(0, 232, 154, .12);
+        border: 1px solid rgba(94, 255, 195, .2);
+        transition: transform .3s ease, background .3s ease, border-color .3s ease, box-shadow .3s ease
+    }
+
+    .sidebar-link::after {
+        content: '>';
+        font-size: .85rem;
+        color: var(--neon-pink)
+    }
+
+    .sidebar-link:hover {
+        transform: translateX(-4px);
+        background: rgba(0, 232, 154, .25);
+        border-color: var(--neon-pink);
+        box-shadow: 0 0 20px rgba(94, 255, 195, .3)
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(2, 20, 13, .75);
+        backdrop-filter: blur(8px);
+        display: none;
+        z-index: 25
+    }
+
+    .sidebar-backdrop.active {
+        display: block
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(2, 20, 13, .92);
+        backdrop-filter: blur(12px);
+        z-index: 30;
+        pointer-events: auto
+    }
+
+    .modal-overlay.active {
+        display: flex
+    }
+
+    .modal-card {
+        width: min(90%, 400px);
+        background: linear-gradient(155deg, rgba(4, 38, 24, .95) 0, rgba(7, 59, 38, .9) 100%);
+        border: 1px solid rgba(94, 255, 195, .3);
+        box-shadow: 0 0 40px rgba(0, 232, 154, .35);
+        border-radius: 24px;
+        padding: 2.25rem;
+        text-align: center;
+        position: relative
+    }
+
+    .modal-card h2 {
+        font-family: Orbitron, sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 2px;
+        color: var(--neon-pink);
+        margin-bottom: 1rem;
+        text-transform: uppercase
+    }
+
+    .modal-card p {
+        font-size: 1rem;
+        color: rgba(232, 255, 244, .85);
+        line-height: 1.6;
+        margin-bottom: 1.8rem
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: center
+    }
+
+    .modal-close-btn {
+        padding: .9rem 2.4rem;
+        font-family: Orbitron, sans-serif;
+        font-size: .95rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        border-radius: 999px;
+        border: 1px solid rgba(94, 255, 195, .6);
+        background: rgba(0, 232, 154, .18);
+        color: #e8fff4;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform .3s ease, box-shadow .3s ease, background .3s ease
+    }
+
+    .modal-close-btn:hover {
+        transform: translateY(-3px);
+        background: rgba(0, 232, 154, .32);
+        box-shadow: 0 0 25px rgba(94, 255, 195, .35)
+    }
+
+    #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg-dark);
+        z-index: 999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Orbitron;
+        color: var(--neon-blue);
+        font-size: 1.5rem;
+        transition: opacity 1s ease
+    }
+
+    @media (max-width:768px) {
+        h1 {
+            font-size: 2.5rem
+        }
+
+        nav {
+            padding: 1.5rem 2rem
+        }
+
+        .nav-actions {
+            gap: .75rem
+        }
+
+        .nav-links a {
+            margin-left: 0;
+            font-size: 1rem
+        }
+
+        .menu-toggle {
+            display: flex
+        }
+
+        .hero-content {
+            padding: 0 2rem;
+            text-align: center;
+            margin: auto
+        }
+
+        .stats-bar {
+            padding: 1.5rem 2rem;
+            justify-content: center
+        }
+
+        .stat-item {
+            text-align: center
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: min(80vw, 320px);
+            padding: 2.5rem 1.75rem;
+            border-radius: 0 0 0 24px;
+            border-top: none;
+            border-right: none;
+            border-bottom: none;
+            box-shadow: 0 0 40px rgba(0, 232, 154, .3);
+            background: rgba(2, 20, 13, .95);
+            transform: translateX(110%);
+            transition: transform .35s ease;
+            gap: 2rem
+        }
+
+        .sidebar.active {
+            transform: translateX(0)
+        }
+
+        .sidebar-backdrop.active {
+            display: block
+        }
+    }
+</style>
+<div id="loader">INITIALIZING Charles CORE...</div>
+<div id="canvas-container"></div>
+<div id="ui-layer">
+    <nav class="interactive-ui">
+        <div class="logo"><img src="logo.png" alt="Citadel of Charles logo"></div>
+        <div class="nav-actions">
+            <div class="nav-links"><a href="#" id="connect-wallet-btn" style="color:var(--neon-blue)">Connect Wallet</a></div><button class="menu-toggle interactive-ui" id="menu-toggle" type="button" aria-controls="mobile-sidebar" aria-expanded="false"><span class="sr-only">Toggle navigation</span> <span class="menu-toggle-icon" aria-hidden="true"></span></button>
+        </div>
+    </nav>
+    <div class="hero-content interactive-ui" id="hero">
+        <h1>Citadel of Charles</h1>
+        <p class="subtitle">Discover the cool green stronghold where Charles curates games, lore, and NFT realms for the community.
+        <div style="margin-top:2rem"><a href="https://x.com/CitadelADA" class="btn btn-primary" target="_blank" rel="noopener">Community</a></div>
+    </div>
+    <aside id="mobile-sidebar" class="sidebar interactive-ui">
+        <div class="sidebar-category">
+            <h2>Games</h2>
+            <div class="sidebar-links"><a class="sidebar-link" href="https://citadelofcharles.space/platformer" target="_blank" rel="noopener">Play Citadel</a> <a class="sidebar-link" href="https://citadelofcharles.space/bisondefence" target="_blank" rel="noopener">Play Bison Defence</a> <a class="sidebar-link" href="https://citadelofcharles.space/adaarcana" target="_blank" rel="noopener">Play ADA Arcana</a></div>
+        </div>
+        <div class="sidebar-category">
+            <h2>NFT</h2>
+            <div class="sidebar-links"><a class="sidebar-link" href="https://www.jpg.store/collection/citadelofcharles?tab=minting" target="_blank" rel="noopener">Charles OG</a> <a class="sidebar-link" href="https://www.jpg.store/collection/bisonislands" target="_blank" rel="noopener">Bison Islands</a> <a class="sidebar-link" href="https://www.jpg.store/collection/hallowcharles?tab=minting" target="_blank" rel="noopener">HCharles</a></div>
+        </div>
+    </aside>
+    <div id="sidebar-backdrop" class="sidebar-backdrop interactive-ui"></div>
+    <div class="stats-bar interactive-ui">
+        <div class="stat-item">
+            <h3>513 / 804</h3>
+            <p>Minted
+        </div>
+        <div class="stat-item">
+            <h3>3 ADA</h3>
+            <p>Promo (Reg 5 ADA)
+        </div>
+        <div class="stat-item">
+            <h3 style="color:var(--neon-pink)">LIVE</h3>
+            <p>Status
+        </div>
+    </div>
+</div>
+<div id="wallet-modal" class="modal-overlay interactive-ui" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
+    <div class="modal-card">
+        <h2 id="wallet-modal-title">Citadel Notice</h2>
+        <p>Dashboard unavailable for now. Get back in 48 hours to access the Citadel systems.
+        <div class="modal-actions"><button id="wallet-modal-close" class="modal-close-btn">Understood</button></div>
+    </div>
+</div>
+<script type="importmap">{
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }</script>
+<script type="module">
+    import * as THREE from "three";
+    import {
+        EffectComposer
+    } from "three/addons/postprocessing/EffectComposer.js";
+    import {
+        RenderPass
+    } from "three/addons/postprocessing/RenderPass.js";
+    import {
+        UnrealBloomPass
+    } from "three/addons/postprocessing/UnrealBloomPass.js";
+    import {
+        OutputPass
+    } from "three/addons/postprocessing/OutputPass.js";
+    let camera, scene, renderer, composer, mainObject, wireframeObj;
+    const floatingShapes = [];
+    let mouseX = 0,
+        mouseY = 0,
+        targetX = 0,
+        targetY = 0;
+    const windowHalfX = window.innerWidth / 2,
+        windowHalfY = window.innerHeight / 2,
+        colors = [59546, 6225859, 11796314, 736558, 6750146];
+    init(), animate();
+    const walletBtn = document.getElementById("connect-wallet-btn"),
+        walletModal = document.getElementById("wallet-modal"),
+        walletModalClose = document.getElementById("wallet-modal-close"),
+        menuToggle = document.getElementById("menu-toggle"),
+        mobileSidebar = document.getElementById("mobile-sidebar"),
+        sidebarBackdrop = document.getElementById("sidebar-backdrop"),
+        closeWalletModal = () => {
+            walletModal && walletModal.classList.remove("active")
+        },
+        closeSidebarMenu = () => {
+            mobileSidebar && mobileSidebar.classList.remove("active"), sidebarBackdrop && sidebarBackdrop.classList.remove("active"), menuToggle && menuToggle.setAttribute("aria-expanded", "false")
+        };
+
+    function init() {
+        const e = document.getElementById("canvas-container");
+        scene = new THREE.Scene, scene.background = new THREE.Color(136205), scene.fog = new THREE.FogExp2(136205, .035), camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 2e3), camera.position.z = 30, renderer = new THREE.WebGLRenderer({
+            antialias: !0,
+            alpha: !0
+        }), renderer.setPixelRatio(window.devicePixelRatio), renderer.setSize(window.innerWidth, window.innerHeight), renderer.toneMapping = THREE.ReinhardToneMapping, e.appendChild(renderer.domElement);
+        const t = new THREE.IcosahedronGeometry(10, 1),
+            n = new THREE.MeshStandardMaterial({
+                color: 1058075,
+                roughness: .1,
+                metalness: .9,
+                emissive: 417338,
+                flatShading: !0
+            });
+        mainObject = new THREE.Mesh(t, n), scene.add(mainObject);
+        const o = new THREE.WireframeGeometry(t),
+            a = new THREE.LineBasicMaterial({
+                color: 6225859,
+                linewidth: 2
+            });
+        wireframeObj = new THREE.LineSegments(o, a), mainObject.add(wireframeObj);
+        const i = new THREE.BufferGeometry,
+            s = new Float32Array(9e3);
+        for (let e = 0; e < 9e3; e++) s[e] = 300 * (Math.random() - .5);
+        i.setAttribute("position", new THREE.BufferAttribute(s, 3));
+        const r = new THREE.PointsMaterial({
+                size: .2,
+                color: 16777215,
+                transparent: !0,
+                opacity: .8,
+                blending: THREE.AdditiveBlending
+            }),
+            d = new THREE.Points(i, r);
+        scene.add(d);
+        const l = [new THREE.TorusGeometry(1, .4, 16, 100), new THREE.OctahedronGeometry(1.5), new THREE.BoxGeometry(1.5, 1.5, 1.5), new THREE.ConeGeometry(1, 2, 32)];
+        for (let e = 0; e < 50; e++) {
+            const e = l[Math.floor(Math.random() * l.length)],
+                t = colors[Math.floor(Math.random() * colors.length)],
+                n = new THREE.MeshStandardMaterial({
+                    color: t,
+                    roughness: .3,
+                    metalness: .7,
+                    emissive: t,
+                    emissiveIntensity: .5
+                }),
+                o = new THREE.Mesh(e, n),
+                a = THREE.MathUtils.randFloatSpread(360),
+                i = THREE.MathUtils.randFloatSpread(360),
+                s = 30 + 50 * Math.random();
+            o.position.x = s * Math.sin(a) * Math.cos(i), o.position.y = s * Math.sin(a) * Math.sin(i), o.position.z = s * Math.cos(a) - 10, o.userData = {
+                rotX: .02 * (Math.random() - .5),
+                rotY: .02 * (Math.random() - .5)
+            }, scene.add(o), floatingShapes.push(o)
+        }
+        const c = new THREE.AmbientLight(1717031, 2);
+        scene.add(c);
+        const m = new THREE.PointLight(59546, 1e3, 100);
+        m.position.set(20, 20, 20), scene.add(m);
+        const w = new THREE.PointLight(6225859, 1e3, 100);
+        w.position.set(-20, -20, 20), scene.add(w);
+        const E = new THREE.PointLight(11796314, 500, 100);
+        E.position.set(0, 30, -10), scene.add(E);
+        const p = new RenderPass(scene, camera),
+            u = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, .4, .85);
+        u.threshold = 0, u.strength = 2, u.radius = .5;
+        const h = new OutputPass;
+        composer = new EffectComposer(renderer), composer.addPass(p), composer.addPass(u), composer.addPass(h), document.addEventListener("mousemove", onDocumentMouseMove), window.addEventListener("resize", onWindowResize), setTimeout(() => {
+            const e = document.getElementById("loader");
+            e.style.opacity = "0", setTimeout(() => e.remove(), 1e3)
+        }, 1500)
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight, camera.updateProjectionMatrix(), renderer.setSize(window.innerWidth, window.innerHeight), composer.setSize(window.innerWidth, window.innerHeight)
+    }
+
+    function onDocumentMouseMove(e) {
+        mouseX = e.clientX - windowHalfX, mouseY = e.clientY - windowHalfY
+    }
+
+    function animate() {
+        requestAnimationFrame(animate), render()
+    }
+
+    function render() {
+        const e = 5e-4 * Date.now();
+        if (targetX = .001 * mouseX, targetY = .001 * mouseY, camera.position.x += .05 * (.01 * mouseX - camera.position.x), camera.position.y += .05 * (.01 * -mouseY - camera.position.y), camera.lookAt(scene.position), mainObject) {
+            mainObject.rotation.x += .005, mainObject.rotation.y += .008;
+            const t = 1 + .03 * Math.sin(2 * e);
+            wireframeObj.scale.set(t, t, t), wireframeObj.material.color.setHSL(Math.sin(.5 * e), .8, .5)
+        }
+        floatingShapes.forEach(t => {
+            t.rotation.x += t.userData.rotX, t.rotation.y += t.userData.rotY, t.position.y += .05 * Math.sin(e + t.position.x)
+        }), composer.render()
+    }
+    menuToggle && mobileSidebar && sidebarBackdrop && (menuToggle.addEventListener("click", e => {
+        e.preventDefault();
+        const t = mobileSidebar.classList.toggle("active");
+        sidebarBackdrop.classList.toggle("active", t), menuToggle.setAttribute("aria-expanded", t ? "true" : "false")
+    }), sidebarBackdrop.addEventListener("click", () => {
+        closeSidebarMenu()
+    }), mobileSidebar.querySelectorAll("a").forEach(e => {
+        e.addEventListener("click", () => closeSidebarMenu())
+    }), window.addEventListener("resize", () => {
+        window.innerWidth > 768 && closeSidebarMenu()
+    })), walletBtn && walletModal && walletModalClose && (walletBtn.addEventListener("click", e => {
+        e.preventDefault(), walletModal.classList.add("active")
+    }), walletModalClose.addEventListener("click", e => {
+        e.preventDefault(), closeWalletModal()
+    }), walletModal.addEventListener("click", e => {
+        e.target === walletModal && closeWalletModal()
+    })), document.addEventListener("keydown", e => {
+        if ("Escape" === e.key) {
+            let t = !1;
+            walletModal && walletModal.classList.contains("active") && (closeWalletModal(), t = !0), mobileSidebar && mobileSidebar.classList.contains("active") && (closeSidebarMenu(), t = !0), t && e.preventDefault()
+        }
+    })
+</script>

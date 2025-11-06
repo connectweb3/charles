@@ -1,0 +1,2672 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <title>ADA Arcana - Card Pack Opening</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --c-common: #b0b0b0;
+            --c-uncommon: #00ff66;
+            --c-rare: #00eaff;
+            --c-epic: #d000ff;
+            --c-legendary: #ffd700;
+            --c-mythic: #ff4d00;
+            --c-celestials: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050510;
+            font-family: Orbitron, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color: #fff;
+        }
+
+        /* Wallet Connection Styles */
+        #wallet-connection {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        #connect-wallet-btn {
+            padding: 16px 32px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0033cc 0%, #00eaff 100%);
+            border: 2px solid rgba(0, 234, 255, 0.8);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 30px rgba(0, 234, 255, 0.6), 0 0 60px rgba(0, 234, 255, 0.3);
+            transition: all 0.3s ease;
+            font-family: Orbitron, sans-serif;
+        }
+
+        #connect-wallet-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(0, 234, 255, 0.8), 0 0 80px rgba(0, 234, 255, 0.4);
+            background: linear-gradient(135deg, #0044ff 0%, #00ffff 100%);
+        }
+
+        #connect-wallet-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Wallet Modal Styles */
+        #wallet-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(90%, 800px);
+            background: linear-gradient(145deg, rgba(10, 10, 30, 0.95) 0%, rgba(5, 5, 20, 0.98) 100%);
+            border: 2px solid rgba(0, 234, 255, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 50px rgba(0, 234, 255, 0.4), inset 0 0 20px rgba(0, 234, 255, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 10001;
+            pointer-events: auto;
+            display: none;
+        }
+
+        #wallet-modal.show {
+            display: block;
+        }
+
+        .wallet-modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .wallet-modal-title {
+            font-family: Cinzel, serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #e8faff;
+            text-shadow: 0 0 15px rgba(0, 234, 255, 0.8);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .wallet-modal-subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+            color: #00eaff;
+        }
+
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .wallet-item {
+            background: linear-gradient(135deg, rgba(20, 20, 40, 0.8) 0%, rgba(10, 10, 30, 0.9) 100%);
+            border: 1px solid rgba(0, 234, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wallet-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 234, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .wallet-item:hover::before {
+            left: 100%;
+        }
+
+        .wallet-item:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 234, 255, 0.8);
+            box-shadow: 0 10px 30px rgba(0, 234, 255, 0.3);
+        }
+
+        .wallet-logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            background: rgba(0, 234, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #00eaff;
+            border: 1px solid rgba(0, 234, 255, 0.3);
+        }
+
+        .wallet-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #e8faff;
+            margin-bottom: 8px;
+        }
+
+        .wallet-desc {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #00eaff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 234, 255, 0.1);
+            transform: rotate(90deg);
+        }
+
+        /* Connected Wallet Display */
+        #connected-wallet {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 30, 0.9);
+            border: 1px solid rgba(0, 234, 255, 0.4);
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            z-index: 9999;
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+
+        #connected-wallet.show {
+            display: block;
+        }
+
+        .wallet-address {
+            color: #00eaff;
+            font-weight: 600;
+        }
+
+        /* NFT Dashboard Styles */
+        #nft-dashboard {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(90%, 1000px);
+            max-height: 80vh;
+            background: linear-gradient(145deg, rgba(10, 10, 30, 0.95) 0%, rgba(5, 5, 20, 0.98) 100%);
+            border: 2px solid rgba(0, 234, 255, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 50px rgba(0, 234, 255, 0.4), inset 0 0 20px rgba(0, 234, 255, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 10002;
+            pointer-events: auto;
+            display: none;
+            overflow-y: auto;
+        }
+
+        #nft-dashboard.show {
+            display: block;
+        }
+
+        .nft-dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nft-dashboard-title {
+            font-family: Cinzel, serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #e8faff;
+            text-shadow: 0 0 15px rgba(0, 234, 255, 0.8);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .nft-dashboard-subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+            color: #00eaff;
+        }
+
+        .nft-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nft-stat-card {
+            background: linear-gradient(135deg, rgba(20, 20, 40, 0.8) 0%, rgba(10, 10, 30, 0.9) 100%);
+            border: 1px solid rgba(0, 234, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .nft-stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #00eaff;
+            text-shadow: 0 0 10px rgba(0, 234, 255, 0.6);
+            margin-bottom: 5px;
+        }
+
+        .nft-stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            color: #e8faff;
+        }
+
+        .nft-collections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .nft-collection {
+            background: linear-gradient(135deg, rgba(20, 20, 40, 0.8) 0%, rgba(10, 10, 30, 0.9) 100%);
+            border: 1px solid rgba(0, 234, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .collection-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .collection-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 234, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #00eaff;
+            border: 1px solid rgba(0, 234, 255, 0.3);
+        }
+
+        .collection-info {
+            flex: 1;
+        }
+
+        .collection-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #e8faff;
+            margin-bottom: 5px;
+        }
+
+        .collection-policy {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .nft-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .nft-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 234, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .nft-item:hover {
+            border-color: rgba(0, 234, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .nft-image {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 234, 255, 0.1);
+            border-radius: 6px;
+            margin: 0 auto 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #00eaff;
+        }
+
+        .nft-name {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .dashboard-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #0033cc 0%, #00eaff 100%);
+            border: 1px solid rgba(0, 234, 255, 0.6);
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 234, 255, 0.3);
+        }
+
+        /* Existing styles remain the same */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #instruction {
+            position: absolute;
+            bottom: 10%;
+            width: 100%;
+            text-align: center;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            opacity: .8;
+            text-shadow: 0 0 10px rgba(0,234,255,.7);
+            pointer-events: none;
+            font-family: Cinzel, serif;
+        }
+
+        .rarity-badge {
+            position: absolute;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity .5s;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 2rem;
+            color: var(--c-rare);
+        }
+
+        #pack-selection {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            width: min(92%,720px);
+            background: linear-gradient(180deg,rgba(10,10,18,.85) 0,rgba(5,5,16,.9) 100%);
+            border: 1px solid rgba(212,175,55,.45);
+            border-radius: 12px;
+            padding: 14px;
+            pointer-events: auto;
+            box-shadow: 0 0 24px rgba(0,234,255,.25),inset 0 0 12px rgba(212,175,55,.25);
+            z-index: 20;
+            display: none;
+        }
+
+        #pack-selection .pack-grid {
+            display: grid;
+            grid-template-columns: repeat(2,minmax(0,1fr));
+            gap: 10px;
+        }
+
+        #pack-modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            text-align: center;
+            letter-spacing: 2px;
+            margin: 6px 0 12px 0;
+            color: #e8faff;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(0,234,255,.6);
+        }
+
+        .pack-rates {
+            display: grid;
+            grid-template-columns: repeat(2,minmax(0,1fr));
+            gap: 2px 12px;
+            font-size: 11px;
+            line-height: 1.3;
+            margin-top: 4px;
+            opacity: .9;
+        }
+
+        .pack-rates .rate-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pack-rates .rate-label {
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .pack-rates .rate-val {
+            opacity: .85;
+        }
+
+        .pack-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(10,10,20,.7);
+            border: 1px solid rgba(212,175,55,.25);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: transform .2s ease,border-color .2s ease;
+        }
+
+        .pack-item:hover {
+            transform: translateY(-2px);
+            border-color: rgba(212,175,55,.6);
+        }
+
+        .pack-thumb {
+            width: 72px;
+            height: 108px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 6px;
+            flex: 0 0 auto;
+            box-shadow: 0 0 10px rgba(0,0,0,.5);
+        }
+
+        .pack-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .pack-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #e8faff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pack-desc {
+            font-size: 12px;
+            line-height: 1.25;
+            opacity: .9;
+        }
+
+        #modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,.6);
+            backdrop-filter: blur(2px);
+            pointer-events: auto;
+            z-index: 15;
+            display: none;
+        }
+
+        .pack-item.selected {
+            border-color: rgba(212,175,55,.9);
+            box-shadow: 0 0 16px rgba(212,175,55,.35);
+        }
+
+        .pack-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .btn {
+            pointer-events: auto;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(212,175,55,.5);
+            background: linear-gradient(180deg,rgba(20,20,30,.9) 0,rgba(5,5,16,.9) 100%);
+            color: #e8faff;
+            cursor: pointer;
+            font-weight: 700;
+            text-shadow: 0 0 6px rgba(0,234,255,.35);
+            box-shadow: 0 0 10px rgba(0,234,255,.18),inset 0 0 6px rgba(212,175,55,.18);
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 0 16px rgba(0,234,255,.35),inset 0 0 10px rgba(212,175,55,.3);
+        }
+
+        .btn-primary {
+            border-color: rgba(0,234,255,.7);
+            background: linear-gradient(180deg,rgba(0,40,50,.7) 0,rgba(0,20,30,.6) 100%);
+        }
+
+        body {
+            background: radial-gradient(1200px 800px at 50% 60%,rgba(0,234,255,.06),rgba(0,0,0,0) 60%),radial-gradient(800px 600px at 50% -10%,rgba(212,175,55,.08),rgba(0,0,0,0) 60%),#050510;
+        }
+
+        #instruction {
+            font-family: Cinzel,serif;
+            text-shadow: 0 0 8px rgba(0,234,255,.6),0 0 14px rgba(212,175,55,.35);
+        }
+
+        #post-open-actions {
+            z-index: 30;
+            pointer-events: auto;
+        }
+
+        #card-info-panel {
+            z-index: 18;
+            pointer-events: none;
+            font-family: Cinzel,serif;
+        }
+
+        #backpack-btn {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 1px solid rgba(212,175,55,.3);
+            background: url('icon/backpack.jpg') center/70% no-repeat #0a0a14;
+            box-shadow: 0 0 6px rgba(255,255,255,.08),inset 0 0 4px rgba(212,175,55,.12);
+            z-index: 40;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        #backpack-btn:active, #backpack-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 10px rgba(255,255,255,.18),0 0 16px rgba(0,234,255,.18),inset 0 0 8px rgba(212,175,55,.22);
+        }
+
+        #inventory-panel {
+            position: absolute;
+            top: 80px;
+            right: 14px;
+            width: min(420px,92vw);
+            max-height: 70vh;
+            overflow: auto;
+            background: linear-gradient(180deg,rgba(10,10,18,.92) 0,rgba(5,5,16,.95) 100%);
+            border: 1px solid rgba(212,175,55,.45);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 0 24px rgba(0,234,255,.25),inset 0 0 12px rgba(212,175,55,.25);
+            z-index: 38;
+            pointer-events: auto;
+            display: none;
+        }
+
+        .inv-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .inv-title {
+            font-family: Cinzel,serif;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(0,234,255,.6);
+        }
+
+        .inv-grid {
+            display: grid;
+            grid-template-columns: repeat(4,minmax(0,1fr));
+            gap: 10px;
+        }
+
+        .inv-item {
+            position: relative;
+            border: 1px solid rgba(0,234,255,.25);
+            background: rgba(0,0,0,.35);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .inv-item img {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            display: block;
+        }
+
+        .inv-count-badge {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            background: rgba(0,0,0,.7);
+            border: 1px solid rgba(212,175,55,.7);
+            border-radius: 12px;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        #hover-tooltip {
+            z-index: 44;
+            pointer-events: none;
+            font-family: Cinzel,serif;
+        }
+
+        #preloader {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(1000px 700px at 50% 60%,rgba(0,234,255,.08),rgba(0,0,0,0) 60%),radial-gradient(800px 500px at 50% -10%,rgba(212,175,55,.1),rgba(0,0,0,0) 60%),#050510;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            pointer-events: auto;
+            transition: opacity .7s ease;
+        }
+
+        #preloader.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .preloader-inner {
+            width: min(560px,92vw);
+            background: linear-gradient(180deg,rgba(10,10,18,.92) 0,rgba(5,5,16,.96) 100%);
+            border: 1px solid rgba(212,175,55,.5);
+            border-radius: 12px;
+            padding: 18px 16px;
+            box-shadow: 0 0 24px rgba(0,234,255,.25),inset 0 0 12px rgba(212,175,55,.22);
+            text-align: center;
+        }
+
+        .preloader-logo {
+            font-family: Cinzel,serif;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #e8faff;
+            text-shadow: 0 0 10px rgba(0,234,255,.55),0 0 16px rgba(212,175,55,.35);
+            margin-bottom: 6px;
+        }
+
+        .preloader-sub {
+            font-size: 12px;
+            opacity: .9;
+            margin-bottom: 12px;
+        }
+
+        .preloader-bar {
+            position: relative;
+            height: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,234,255,.45);
+            background: rgba(0,0,0,.35);
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0,234,255,.15);
+        }
+
+        #preload-bar-fill {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg,rgba(0,234,255,.8),rgba(212,175,55,.8));
+            box-shadow: 0 0 12px rgba(0,234,255,.45);
+            transition: width .2s ease;
+        }
+
+        .preloader-meta {
+            font-size: 12px;
+            opacity: .85;
+            margin-top: 8px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Preloader -->
+    <div id="preloader" aria-busy="true" aria-live="polite">
+        <div class="preloader-inner">
+            <div class="preloader-logo">ADA ARCANA</div>
+            <div class="preloader-sub">Initializing astral lattice...</div>
+            <div class="preloader-bar">
+                <span id="preload-bar-fill"></span>
+            </div>
+            <div class="preloader-meta">
+                <span id="preload-count">0</span>/<span id="preload-total">0</span> assets • <span id="preload-percent">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Connection -->
+    <div id="wallet-connection" style="display: none;">
+        <button id="connect-wallet-btn">Connect Wallet</button>
+    </div>
+
+    <!-- Connected Wallet Display -->
+    <div id="connected-wallet">
+        <div>Connected: <span class="wallet-address" id="wallet-address-display"></span></div>
+        <button id="view-nfts-btn" class="dashboard-btn" style="margin-top: 8px; font-size: 0.8rem;">View NFTs</button>
+    </div>
+
+    <!-- Wallet Modal -->
+    <div id="wallet-modal">
+        <button class="modal-close">&times;</button>
+        <div class="wallet-modal-header">
+            <div class="wallet-modal-title">CONNECT WALLET</div>
+            <div class="wallet-modal-subtitle">Choose your Cardano wallet to continue</div>
+        </div>
+        <div class="wallet-grid" id="wallet-grid">
+            <!-- Wallet items will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- NFT Dashboard -->
+    <div id="nft-dashboard">
+        <button class="modal-close">&times;</button>
+        <div class="nft-dashboard-header">
+            <div class="nft-dashboard-title">NFT COLLECTION</div>
+            <div class="nft-dashboard-subtitle">Your Cardano NFTs from supported collections</div>
+        </div>
+        
+        <div class="nft-stats-grid" id="nft-stats">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+
+        <div class="nft-collections" id="nft-collections">
+            <!-- NFT collections will be populated by JavaScript -->
+        </div>
+
+        <div class="dashboard-actions">
+            <button id="refresh-nfts" class="dashboard-btn">Refresh</button>
+            <button id="close-dashboard" class="dashboard-btn">Close</button>
+        </div>
+    </div>
+
+    <!-- UI Container -->
+    <div id="ui-container">
+        <div id="modal-backdrop"></div>
+        <div id="pack-selection">
+            <div id="pack-modal-title">CELESTIAL GENESIS PACK</div>
+            <div class="pack-grid" id="pack-grid"></div>
+            <div class="modal-footer">
+                <button id="confirm-pack" class="btn btn-primary" disabled="disabled">Confirm</button>
+                <button id="cancel-pack" class="btn">Cancel</button>
+            </div>
+        </div>
+        <div id="instruction">Connect your wallet to begin</div>
+        <div id="loading">LOADING ADA ARCANA...</div>
+        <button id="backpack-btn" title="Inventory" aria-label="Inventory"></button>
+        <div id="inventory-panel" style="display:none">
+            <div class="inv-header">
+                <div class="inv-title">Backpack</div>
+                <button class="inv-close btn">Close</button>
+            </div>
+            <div class="inv-grid" id="inv-grid"></div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+        // --- NFT DASHBOARD SYSTEM ---
+        const NFTDashboard = (() => {
+            const BLOCKFROST_API_KEY = 'mainnet4LNS0KGexFcBeeXUJF3Jt4UpOrFH6Yje';
+            const BLOCKFROST_BASE_URL = 'https://cardano-mainnet.blockfrost.io/api/v0';
+            
+            const supportedPolicies = {
+                charles: {
+                    name: 'Charles NFT',
+                    policy: '8ba415901810af78c8ae75239b0c61fc54f09850a4c32f4acd206308',
+                    icon: '👑'
+                },
+                bison: {
+                    name: 'Bison NFT',
+                    policy: '584af8907c477e897ec19a1bbf34a6bb462ab8adbf51252eb11ce083',
+                    icon: '🐃'
+                },
+                hcharles: {
+                    name: 'HCharles NFT',
+                    policy: '0a05e7b75baf1bba6754baf03536f8e9f3ce798b84ad300428922bb4',
+                    icon: '⚡'
+                }
+            };
+
+            let userNFTs = {};
+
+            async function fetchUserNFTs() {
+                if (!WalletManager.isConnected()) {
+                    alert('Please connect your wallet first');
+                    return;
+                }
+
+                try {
+                    const wallet = WalletManager.getConnectedWallet();
+                    const walletAPI = window.cardano[wallet.apiName];
+                    const api = await walletAPI.enable();
+                    
+                    // Get all UTXOs directly from the wallet (no Blockfrost address API needed)
+                    const utxos = await api.getUtxos();
+                    
+                    // Show loading state
+                    const collectionsGrid = document.getElementById('nft-collections');
+                    if (collectionsGrid) {
+                        collectionsGrid.innerHTML = `
+                            <div style="text-align: center; padding: 40px; opacity: 0.7;">
+                                <div style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
+                                <div style="font-size: 1.2rem; margin-bottom: 10px;">Loading NFTs...</div>
+                                <div>Scanning your wallet for NFTs...</div>
+                            </div>
+                        `;
+                    }
+
+                    // Reset user NFTs
+                    userNFTs = {};
+                    
+                    // Process UTXOs to find NFTs from supported policies
+                    const allNFTs = [];
+                    
+                    for (const utxo of utxos) {
+                        if (utxo.amount) {
+                            for (const asset of utxo.amount) {
+                                // Check if this asset belongs to any of our supported policies
+                                const assetUnit = asset.unit;
+                                const policyId = assetUnit.slice(0, 56); // First 56 chars is policy ID
+                                
+                                // Find which collection this policy belongs to
+                                const collectionEntry = Object.entries(supportedPolicies).find(
+                                    ([_, collection]) => collection.policy === policyId
+                                );
+                                
+                                if (collectionEntry && asset.quantity === '1') {
+                                    const [collectionName, collection] = collectionEntry;
+                                    
+                                    // Fetch detailed asset information from Blockfrost
+                                    try {
+                                        const assetResponse = await fetch(
+                                            `${BLOCKFROST_BASE_URL}/assets/${assetUnit}`,
+                                            {
+                                                headers: {
+                                                    'project_id': BLOCKFROST_API_KEY
+                                                }
+                                            }
+                                        );
+                                        
+                                        if (assetResponse.ok) {
+                                            const assetData = await assetResponse.json();
+                                            
+                                            // Extract image URL from metadata
+                                            let imageUrl = null;
+                                            if (assetData.onchain_metadata && assetData.onchain_metadata.image) {
+                                                imageUrl = assetData.onchain_metadata.image;
+                                                // Handle IPFS URLs
+                                                if (imageUrl.startsWith('ipfs://')) {
+                                                    imageUrl = `https://ipfs.blockfrost.dev/ipfs/${imageUrl.slice(7)}`;
+                                                }
+                                            }
+                                            
+                                            const nft = {
+                                                assetId: assetUnit,
+                                                quantity: asset.quantity,
+                                                name: assetData.onchain_metadata?.name || extractAssetName(assetUnit),
+                                                image: imageUrl || getNFTImageUrl(assetUnit, collectionName),
+                                                metadata: assetData.onchain_metadata
+                                            };
+                                            
+                                            allNFTs.push({ collectionName, nft });
+                                        }
+                                    } catch (error) {
+                                        console.warn(`Failed to fetch asset ${assetUnit}:`, error);
+                                        // Add basic NFT info even if metadata fetch fails
+                                        const nft = {
+                                            assetId: assetUnit,
+                                            quantity: asset.quantity,
+                                            name: extractAssetName(assetUnit),
+                                            image: getNFTImageUrl(assetUnit, collectionName)
+                                        };
+                                        allNFTs.push({ collectionName, nft });
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Group NFTs by collection
+                    for (const [collectionName, collection] of Object.entries(supportedPolicies)) {
+                        userNFTs[collectionName] = {
+                            ...collection,
+                            nfts: allNFTs
+                                .filter(item => item.collectionName === collectionName)
+                                .map(item => item.nft)
+                        };
+                    }
+
+                    renderNFTDashboard();
+                    
+                } catch (error) {
+                    console.error('Failed to fetch NFTs:', error);
+                    const collectionsGrid = document.getElementById('nft-collections');
+                    if (collectionsGrid) {
+                        collectionsGrid.innerHTML = `
+                            <div style="text-align: center; padding: 40px; opacity: 0.7;">
+                                <div style="font-size: 3rem; margin-bottom: 20px;">❌</div>
+                                <div style="font-size: 1.2rem; margin-bottom: 10px;">Failed to Load NFTs</div>
+                                <div>Error: ${error.message}</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            function extractAssetName(assetId) {
+                // Extract human-readable name from asset ID
+                if (assetId.length > 56) {
+                    const hexName = assetId.slice(56);
+                    try {
+                        return hexToAscii(hexName);
+                    } catch (e) {
+                        return `NFT ${assetId.slice(0, 8)}...`;
+                    }
+                }
+                return `NFT ${assetId.slice(0, 8)}...`;
+            }
+
+            function hexToAscii(hex) {
+                let str = '';
+                for (let i = 0; i < hex.length; i += 2) {
+                    const byte = parseInt(hex.substr(i, 2), 16);
+                    if (byte >= 32 && byte <= 126) {
+                        str += String.fromCharCode(byte);
+                    }
+                }
+                return str || 'Unnamed NFT';
+            }
+
+            function getNFTImageUrl(assetId, collectionName) {
+                // Placeholder for NFT images when metadata is not available
+                return `https://via.placeholder.com/60x60/00eaff/ffffff?text=${collectionName.slice(0, 2).toUpperCase()}`;
+            }
+
+            function renderNFTDashboard() {
+                const statsGrid = document.getElementById('nft-stats');
+                const collectionsGrid = document.getElementById('nft-collections');
+                
+                if (!statsGrid || !collectionsGrid) return;
+
+                // Calculate statistics
+                let totalNFTs = 0;
+                const collectionStats = {};
+
+                for (const [collectionName, collection] of Object.entries(userNFTs)) {
+                    const count = collection.nfts.length;
+                    totalNFTs += count;
+                    collectionStats[collectionName] = count;
+                }
+
+                // Render statistics
+                statsGrid.innerHTML = `
+                    <div class="nft-stat-card">
+                        <div class="nft-stat-value">${totalNFTs}</div>
+                        <div class="nft-stat-label">Total NFTs</div>
+                    </div>
+                    <div class="nft-stat-card">
+                        <div class="nft-stat-value">${Object.keys(supportedPolicies).length}</div>
+                        <div class="nft-stat-label">Collections</div>
+                    </div>
+                    <div class="nft-stat-card">
+                        <div class="nft-stat-value">${Object.keys(userNFTs).filter(name => userNFTs[name].nfts.length > 0).length}</div>
+                        <div class="nft-stat-label">Active Collections</div>
+                    </div>
+                `;
+
+                // Render collections
+                collectionsGrid.innerHTML = '';
+                
+                for (const [collectionName, collection] of Object.entries(userNFTs)) {
+                    if (collection.nfts.length === 0) continue;
+
+                    const collectionEl = document.createElement('div');
+                    collectionEl.className = 'nft-collection';
+                    collectionEl.innerHTML = `
+                        <div class="collection-header">
+                            <div class="collection-icon">${collection.icon}</div>
+                            <div class="collection-info">
+                                <div class="collection-name">${collection.name}</div>
+                                <div class="collection-policy">${collection.policy.slice(0, 16)}...${collection.policy.slice(-8)}</div>
+                            </div>
+                        </div>
+                        <div class="nft-items">
+                            ${collection.nfts.map(nft => `
+                                <div class="nft-item">
+                                    <div class="nft-image">
+                                        <img src="${nft.image}" alt="${nft.name}" style="width: 100%; height: 100%; border-radius: 6px;" />
+                                    </div>
+                                    <div class="nft-name">${nft.name}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    collectionsGrid.appendChild(collectionEl);
+                }
+
+                // Show empty state if no NFTs found
+                if (totalNFTs === 0) {
+                    collectionsGrid.innerHTML = `
+                        <div style="text-align: center; padding: 40px; opacity: 0.7;">
+                            <div style="font-size: 3rem; margin-bottom: 20px;">🎨</div>
+                            <div style="font-size: 1.2rem; margin-bottom: 10px;">No NFTs Found</div>
+                            <div>You don't own any NFTs from the supported collections yet.</div>
+                        </div>
+                    `;
+                }
+            }
+
+            function showDashboard() {
+                document.getElementById('nft-dashboard').classList.add('show');
+                document.getElementById('modal-backdrop').style.display = 'block';
+                fetchUserNFTs();
+                playUIClick();
+            }
+
+            function hideDashboard() {
+                document.getElementById('nft-dashboard').classList.remove('show');
+                document.getElementById('modal-backdrop').style.display = 'none';
+            }
+
+            function init() {
+                // Event listeners for NFT dashboard
+                document.getElementById('view-nfts-btn').addEventListener('click', showDashboard);
+                document.querySelector('#nft-dashboard .modal-close').addEventListener('click', hideDashboard);
+                document.getElementById('refresh-nfts').addEventListener('click', fetchUserNFTs);
+                document.getElementById('close-dashboard').addEventListener('click', hideDashboard);
+                document.getElementById('modal-backdrop').addEventListener('click', hideDashboard);
+            }
+
+            return {
+                init,
+                showDashboard,
+                hideDashboard,
+                fetchUserNFTs
+            };
+        })();
+
+        // --- WALLET CONNECTION SYSTEM (CIP-30 Integration) ---
+        const WalletManager = (() => {
+            const wallets = [
+                {
+                    id: 'nami',
+                    name: 'Nami Wallet',
+                    description: 'Lightweight browser extension wallet',
+                    logo: 'https://namiwallet.io/favicon-32x32.png',
+                    apiName: 'nami'
+                },
+                {
+                    id: 'eternl',
+                    name: 'Eternl',
+                    description: 'Feature-rich browser wallet',
+                    logo: 'https://eternl.io/apple-touch-icon.png',
+                    apiName: 'eternl'
+                },
+                {
+                    id: 'flint',
+                    name: 'Flint Wallet',
+                    description: 'Secure cross-platform wallet',
+                    logo: 'https://flint-wallet.com/favicon-32x32.png',
+                    apiName: 'flint'
+                },
+                {
+                    id: 'yoroi',
+                    name: 'Yoroi Wallet',
+                    description: 'EMURGO\'s official wallet',
+                    logo: 'https://yoroi-wallet.com/favicon-32x32.png',
+                    apiName: 'yoroi'
+                },
+                {
+                    id: 'gerowallet',
+                    name: 'Gero Wallet',
+                    description: 'Multi-chain DeFi wallet',
+                    logo: 'https://gerowallet.io/favicon-32x32.png',
+                    apiName: 'gerowallet'
+                },
+                {
+                    id: 'typhon',
+                    name: 'Typhon Wallet',
+                    description: 'Feature-packed wallet suite',
+                    logo: 'https://typhonwallet.io/favicon-32x32.png',
+                    apiName: 'typhoncip30'
+                },
+                {
+                    id: 'vespr',
+                    name: 'Vespr Wallet',
+                    description: 'Modern mobile-first wallet',
+                    logo: 'https://vespr.xyz/favicon-32x32.png',
+                    apiName: 'vespr'
+                },
+                {
+                    id: 'lace',
+                    name: 'Lace Wallet',
+                    description: 'IOG\'s official light wallet',
+                    logo: 'https://www.lace.io/favicon-32x32.png',
+                    apiName: 'lace'
+                }
+            ];
+
+            let connectedWallet = null;
+            let walletAddress = null;
+
+            function renderWalletModal() {
+                const grid = document.getElementById('wallet-grid');
+                if (!grid) return;
+
+                grid.innerHTML = '';
+                wallets.forEach(wallet => {
+                    const item = document.createElement('div');
+                    item.className = 'wallet-item';
+                    item.innerHTML = `
+                        <div class="wallet-logo">
+                            <img src="${wallet.logo}" alt="${wallet.name}" style="width: 40px; height: 40px; object-fit: contain;" onerror="this.style.display='none'; this.parentElement.innerHTML='${wallet.icon || '🔷'}';" />
+                        </div>
+                        <div class="wallet-name">${wallet.name}</div>
+                        <div class="wallet-desc">${wallet.description}</div>
+                    `;
+                    item.addEventListener('click', () => connectWallet(wallet));
+                    grid.appendChild(item);
+                });
+            }
+
+            async function connectWallet(wallet) {
+                try {
+                    // Check if wallet is available
+                    if (typeof window.cardano === 'undefined' || !window.cardano[wallet.apiName]) {
+                        throw new Error(`${wallet.name} not detected. Please install the wallet extension.`);
+                    }
+
+                    const walletAPI = window.cardano[wallet.apiName];
+                    
+                    // Check if wallet is enabled
+                    if (!await walletAPI.isEnabled()) {
+                        await walletAPI.enable();
+                    }
+
+                    // Get wallet info
+                    const api = await walletAPI.enable();
+                    const address = (await api.getUsedAddresses())[0];
+                    
+                    if (!address) {
+                        throw new Error('Could not retrieve wallet address');
+                    }
+
+                    connectedWallet = wallet;
+                    walletAddress = address;
+                    
+                    // Update UI
+                    document.getElementById('wallet-address-display').textContent = `${address.slice(0, 8)}...${address.slice(-8)}`;
+                    document.getElementById('connected-wallet').classList.add('show');
+                    document.getElementById('wallet-modal').classList.remove('show');
+                    document.getElementById('wallet-connection').style.display = 'none';
+                    
+                    // Show game interface
+                    document.getElementById('instruction').textContent = "Select a pack to begin";
+                    
+                    // Initialize game
+                    initGame();
+                    
+                    playUIClick();
+
+                    // Log connection for debugging
+                    console.log(`Connected to ${wallet.name}`, address);
+                    
+                } catch (error) {
+                    console.error('Wallet connection failed:', error);
+                    alert(`Failed to connect to ${wallet.name}: ${error.message}`);
+                }
+            }
+
+            // Check available wallets
+            function getAvailableWallets() {
+                const available = [];
+                if (typeof window.cardano !== 'undefined') {
+                    wallets.forEach(wallet => {
+                        if (window.cardano[wallet.apiName]) {
+                            available.push(wallet);
+                        }
+                    });
+                }
+                return available;
+            }
+
+            function disconnectWallet() {
+                connectedWallet = null;
+                walletAddress = null;
+                document.getElementById('connected-wallet').classList.remove('show');
+                document.getElementById('wallet-connection').style.display = 'block';
+                document.getElementById('instruction').textContent = "Connect your wallet to begin";
+            }
+
+            function showWalletModal() {
+                document.getElementById('wallet-modal').classList.add('show');
+                document.getElementById('modal-backdrop').style.display = 'block';
+                playUIClick();
+            }
+
+            function hideWalletModal() {
+                document.getElementById('wallet-modal').classList.remove('show');
+                document.getElementById('modal-backdrop').style.display = 'none';
+            }
+
+            function isConnected() {
+                return connectedWallet !== null;
+            }
+
+            // Initialize wallet system
+            function init() {
+                renderWalletModal();
+                
+                // Event listeners
+                document.getElementById('connect-wallet-btn').addEventListener('click', showWalletModal);
+                document.querySelector('#wallet-modal .modal-close').addEventListener('click', hideWalletModal);
+                document.getElementById('modal-backdrop').addEventListener('click', hideWalletModal);
+                
+                // Show wallet connection after preload
+                setTimeout(() => {
+                    document.getElementById('wallet-connection').style.display = 'block';
+                }, 1000);
+            }
+
+            return {
+                init,
+                isConnected,
+                disconnectWallet,
+                getConnectedWallet: () => connectedWallet,
+                getWalletAddress: () => walletAddress
+            };
+        })();
+
+        // --- CONFIG ---
+        const CONFIG = {
+            colors: {
+                common: 0xb0b0b0,
+                uncommon: 0x00ff66,
+                rare: 0x00eaff,
+                epic: 0xd000ff,
+                legendary: 0xffd700,
+                mythic: 0xff4d00,
+                celestials: 0xffffff,
+                bg: 0x050510,
+                grid: 0x0a0a20
+            },
+            cardSize: { w: 2.5, h: 3.5, d: 0.05 }
+        };
+
+        // Card data (loaded from cards.json) and texture loader
+        let CARD_DATA = [];
+        let CARD_DATA_READY = (async () => {
+            try {
+                const res = await fetch('cards.json');
+                CARD_DATA = await res.json();
+                console.log('Loaded cards.json', CARD_DATA.length);
+            } catch (e) {
+                console.error('Failed to load cards.json. If opening via file://, please run a local server (e.g. VSCode Live Server).', e);
+                CARD_DATA = [];
+            }
+        })();
+
+        const texLoader = new THREE.TextureLoader();
+        texLoader.crossOrigin = 'anonymous';
+
+        // Rarity order from rarest to most common
+        const RARITY_ORDER = ['celestials','mythic','legendary','epic','rare','uncommon','common'];
+
+        let PACKS = [];
+        let SELECTED_PACK = null;
+        let PENDING_PACK = null;
+        let PACK_DATA_READY = (async () => {
+            try {
+                const res = await fetch('packs.json');
+                PACKS = await res.json();
+                // Default to Pack 4 (Celestial Chain Pack) if present
+                SELECTED_PACK = PACKS.find(p => p.pack_id === 4) || PACKS[0] || null;
+                console.log('Loaded packs.json', PACKS.length, 'default pack', SELECTED_PACK?.pack_name);
+            } catch (e) {
+                console.error('Failed to load packs.json. If opening via file://, please run a local server (e.g. VSCode Live Server).', e);
+                PACKS = [];
+                SELECTED_PACK = null;
+            }
+        })();
+
+        function normalizeRarityStr(s) {
+            const r = (s || 'common').toLowerCase();
+            return r === 'celestial' ? 'celestials' : r;
+        }
+
+        let scene, camera, renderer, composer, raycaster, mouse;
+        let packMesh;
+        let cards = [];
+        let isOpening = false;
+        let packOpened = false;
+        let revealedCount = 0;
+
+        // --- INVENTORY & TOOLTIP SYSTEM ---
+        // Build a quick index for card metadata by id once cards.json loads
+        let CARD_INDEX = {};
+        CARD_DATA_READY.then(() => {
+            try {
+                CARD_INDEX = Object.fromEntries(CARD_DATA.map(c => [c.id, c]));
+            } catch (e) {
+                CARD_INDEX = {};
+            }
+        });
+
+        // Hover tooltip singleton (used for 3D cards and inventory items)
+        const HoverTooltip = (() => {
+            let el;
+            function ensure() {
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'hover-tooltip';
+                    el.style.position = 'absolute';
+                    el.style.display = 'none';
+                    el.style.maxWidth = '320px';
+                    el.style.padding = '8px 10px';
+                    el.style.border = '1px solid rgba(0,234,255,0.5)';
+                    el.style.background = 'rgba(0,0,0,0.7)';
+                    el.style.backdropFilter = 'blur(3px)';
+                    el.style.borderRadius = '8px';
+                    el.style.boxShadow = '0 0 12px rgba(0,234,255,0.25)';
+                    const ui = document.getElementById('ui-container');
+                    if (ui) ui.appendChild(el);
+                }
+            }
+            function show(x, y, { name, rarity, description }) {
+                ensure();
+                const rKey = normalizeRarityStr(rarity || 'common');
+                el.innerHTML = `
+                    <div style="font-weight:700;font-size:14px">${name || 'Unknown Card'}</div>
+                    <div style="font-size:11px;opacity:0.85">Rarity: <span style="color: var(--c-${rKey})">${(rKey || 'COMMON').toUpperCase()}</span></div>
+                    <div style="margin-top:6px;font-size:12px;line-height:1.35;opacity:0.95">${description || ''}</div>
+                `;
+                const pad = 12;
+                el.style.left = Math.min(window.innerWidth - 340, x + pad) + 'px';
+                el.style.top = Math.min(window.innerHeight - 180, y + pad) + 'px';
+                el.style.display = 'block';
+            }
+            function hide() {
+                if (el) el.style.display = 'none';
+            }
+            return { show, hide };
+        })();
+
+        // Inventory persistence + UI
+        const Inventory = (() => {
+            const KEY = 'adaarcana.inventory.v1';
+            let counts = {};
+            function load() {
+                try {
+                    const raw = localStorage.getItem(KEY);
+                    counts = raw ? JSON.parse(raw) : {};
+                } catch (e) {
+                    counts = {};
+                }
+            }
+            function save() {
+                try { localStorage.setItem(KEY, JSON.stringify(counts)); } catch (e) {}
+            }
+            function add(id, n = 1) {
+                counts[id] = (counts[id] || 0) + n;
+                save();
+            }
+            function addMany(ids) {
+                ids.forEach(id => add(id, 1));
+            }
+            function entries() {
+                return Object.entries(counts).map(([id, qty]) => ({ id: Number(id), qty }));
+            }
+            function total() {
+                return Object.values(counts).reduce((a, b) => a + b, 0);
+            }
+
+            function render() {
+                const panel = document.getElementById('inventory-panel');
+                const grid = document.getElementById('inv-grid');
+                const btn = document.getElementById('backpack-btn');
+                if (btn) btn.title = `Inventory (${total()})`;
+                if (!panel || !grid) return;
+                grid.innerHTML = '';
+                entries().sort((a, b) => a.id - b.id).forEach(({ id, qty }) => {
+                    const meta = CARD_INDEX[id] || CARD_DATA.find(c => c.id === id) || {};
+                    const item = document.createElement('div');
+                    item.className = 'inv-item';
+                    item.innerHTML = `
+                        <img src="cards/${id}.png" alt="${meta.name || ('Card #' + id)}"
+                             onerror="this.onerror=null; this.src='${meta.image || `cards/${id}.png`}'" />
+                        <div class="inv-count-badge">${qty}</div>
+                    `;
+                    item.addEventListener('mousemove', (ev) => {
+                        HoverTooltip.show(ev.clientX, ev.clientY, {
+                            name: meta.name || ('Card #' + id),
+                            rarity: meta.rarity || 'common',
+                            description: meta.description || ''
+                        });
+                    });
+                    item.addEventListener('mouseleave', () => HoverTooltip.hide());
+                    grid.appendChild(item);
+                });
+
+                const closeBtn = panel.querySelector('.inv-close');
+                if (closeBtn && !closeBtn._bound) {
+                    closeBtn.addEventListener('click', () => hidePanel());
+                    closeBtn._bound = true;
+                }
+            }
+
+            function showPanel() {
+                const panel = document.getElementById('inventory-panel');
+                if (panel) {
+                    panel.style.display = 'block';
+                    render();
+                }
+            }
+            function hidePanel() {
+                const panel = document.getElementById('inventory-panel');
+                if (panel) panel.style.display = 'none';
+                HoverTooltip.hide();
+            }
+            function togglePanel() {
+                const panel = document.getElementById('inventory-panel');
+                if (!panel) return;
+                if (panel.style.display === 'none' || panel.style.display === '') showPanel();
+                else hidePanel();
+            }
+
+            load();
+            return { add, addMany, render, showPanel, hidePanel, togglePanel };
+        })();
+
+        // UI click sound (tiny beep)
+        function playUIClick() {
+            try {
+                if (!window.__adaAudioCtx) {
+                    window.__adaAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const ctx = window.__adaAudioCtx;
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.setValueAtTime(880, ctx.currentTime);
+                g.gain.setValueAtTime(0.12, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+                o.connect(g);
+                g.connect(ctx.destination);
+                o.start();
+                o.stop(ctx.currentTime + 0.09);
+            } catch (e) {}
+        }
+
+        // --- INIT ---
+        function startPreloader() {
+            const pre = document.getElementById('preloader');
+            if (!pre) return;
+            const fill = document.getElementById('preload-bar-fill');
+            const cntEl = document.getElementById('preload-count');
+            const totEl = document.getElementById('preload-total');
+            const pctEl = document.getElementById('preload-percent');
+
+            Promise.allSettled([CARD_DATA_READY, PACK_DATA_READY]).then(async () => {
+                const urls = Array.from(new Set(getAllAssetUrls()));
+                const total = urls.length || 1;
+                if (totEl) totEl.textContent = String(urls.length);
+                let done = 0;
+                const update = () => {
+                    const pct = Math.min(100, Math.round((done / total) * 100));
+                    if (fill) fill.style.width = pct + '%';
+                    if (cntEl) cntEl.textContent = String(done);
+                    if (pctEl) pctEl.textContent = pct + '%';
+                };
+                update();
+                await Promise.all(urls.map(u => preloadImage(u).finally(() => { done++; update(); })));
+                setTimeout(() => pre.classList.add('hide'), 200);
+                setTimeout(() => { 
+                    pre.style.display = 'none';
+                    // Initialize wallet system after preload
+                    WalletManager.init();
+                }, 1000);
+            }).catch(() => {
+                pre.classList.add('hide');
+                setTimeout(() => { 
+                    pre.style.display = 'none';
+                    WalletManager.init();
+                }, 1000);
+            });
+        }
+
+        function preloadImage(url) {
+            return new Promise((resolve) => {
+                if (!url) return resolve();
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = img.onerror = () => resolve();
+                    img.src = url;
+                } catch (e) {
+                    resolve();
+                }
+            });
+        }
+
+        function getAllAssetUrls() {
+            const list = [];
+            try {
+                if (Array.isArray(PACKS)) {
+                    PACKS.forEach(p => {
+                        if (p && p.front_image) list.push(p.front_image);
+                        if (p && p.back_image) list.push(p.back_image);
+                    });
+                }
+            } catch (e) {}
+            try {
+                if (Array.isArray(CARD_DATA)) {
+                    CARD_DATA.forEach(c => {
+                        if (c && c.id != null) list.push(`cards/${c.id}.png`);
+                        if (c && c.image) list.push(c.image);
+                    });
+                }
+            } catch (e) {}
+            // common local fallbacks + favicon
+            list.push('cards/back.png', 'packfront.png', 'packback.png', 'packs/front.png', 'packs/back.png', 'favicon.png');
+            return list;
+        }
+
+        function initGame() {
+            const loadingEl = document.getElementById('loading');
+            if(loadingEl) loadingEl.remove();
+
+            // Scene Setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.02);
+            scene.background = new THREE.Color(CONFIG.colors.bg);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            document.body.appendChild(renderer.domElement);
+
+            // Post Processing (Bloom for futuristic glow)
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.35;
+            bloomPass.strength = 0.6; // Intensity of glow (reduced to keep cards readable)
+            bloomPass.radius = 0.3;
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+            composer.addPass(new OutputPass());
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+            dirLight.position.set(5, 10, 7.5);
+            scene.add(dirLight);
+            
+            // Futuristic Grid Floor
+            const gridHelper = new THREE.GridHelper(50, 50, CONFIG.colors.rare, CONFIG.colors.grid);
+            gridHelper.position.y = -2;
+            scene.add(gridHelper);
+
+            // Raycaster for interaction
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Create Initial Pack
+            createPack();
+
+            // Once packs load, render selection panel
+            PACK_DATA_READY.then(() => {
+                renderPackSelection();
+                const instr = document.getElementById('instruction');
+                if (instr) instr.textContent = "Select a pack to begin";
+            });
+
+            // Events
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onClick);
+            window.addEventListener('mousemove', onMouseMove);
+
+            // Inventory UI wiring
+            const bpBtn = document.getElementById('backpack-btn');
+            if (bpBtn && !bpBtn._bound) {
+                bpBtn.addEventListener('click', () => {
+                    playUIClick();
+                    Inventory.togglePanel();
+                });
+                bpBtn._bound = true;
+            }
+            Inventory.render();
+
+            // Start animation loop
+            animate();
+        }
+
+        // --- ASSET GENERATION (Procedural Textures) ---
+        function createFuturisticTexture(type, text, mainColorStr) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 768;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            const gradient = ctx.createLinearGradient(0, 0, 512, 768);
+            gradient.addColorStop(0, '#0a0a0a');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 768);
+
+            // Cyberpunk grid overlay
+            ctx.strokeStyle = mainColorStr + '44'; // low opacity
+            ctx.lineWidth = 2;
+            for(let i=0; i<512; i+=64) {
+                ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,768); ctx.stroke();
+            }
+            for(let i=0; i<768; i+=64) {
+                ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(512,i); ctx.stroke();
+            }
+
+            // Border
+            ctx.strokeStyle = mainColorStr;
+            ctx.lineWidth = 20;
+            ctx.strokeRect(10, 10, 492, 748);
+
+            // Inner Design based on type
+            if (type === 'pack') {
+                 ctx.fillStyle = mainColorStr;
+                 ctx.font = 'bold 60px Arial';
+                 ctx.textAlign = 'center';
+                 ctx.fillText("ADA", 256, 350);
+                 ctx.fillText("ARCANA", 256, 420);
+                 ctx.strokeStyle = 'white';
+                 ctx.lineWidth = 5;
+                 ctx.beginPath(); ctx.moveTo(50, 384); ctx.lineTo(462, 384); ctx.stroke();
+            } else {
+                // Card Design
+                ctx.fillStyle = mainColorStr;
+                ctx.font = 'bold 40px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 256, 100);
+
+                // Placeholder image area
+                ctx.fillStyle = '#000000aa';
+                ctx.fillRect(50, 150, 412, 400);
+                
+                // Random geometric 'art'
+                ctx.strokeStyle = mainColorStr;
+                ctx.lineWidth = 3;
+                for(let i=0; i<5; i++) {
+                    ctx.beginPath();
+                    ctx.arc(256, 350, 50 + i*30, 0, Math.PI * 2 * Math.random());
+                    ctx.stroke();
+                }
+
+                ctx.font = '30px Arial';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText("FUTURISTIC ASSET", 256, 600);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            return texture;
+        }
+
+        // --- OBJECT CREATION ---
+        function createPack() {
+            const geometry = new THREE.BoxGeometry(3, 4.5, 0.2);
+
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.6, roughness: 0.3 });
+            const frontMat = new THREE.MeshStandardMaterial({
+                roughness: 0.4,
+                metalness: 0.85,
+                emissive: 0x000000,
+                emissiveIntensity: 0
+            });
+            const backMat = new THREE.MeshStandardMaterial({
+                roughness: 0.4,
+                metalness: 0.85
+            });
+
+            // Default local textures; overridden by selected pack when packs.json loads
+            const setTex = (mat, url, fallbackProcColor = '#00eaff') => {
+                try {
+                    texLoader.load(
+                        url,
+                        (tex) => {
+                            if ("colorSpace" in tex) tex.colorSpace = THREE.SRGBColorSpace;
+                            tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                            mat.map = tex; mat.needsUpdate = true;
+                        },
+                        undefined,
+                        () => {
+                            const t = createFuturisticTexture('pack', '', fallbackProcColor);
+                            mat.map = t; mat.needsUpdate = true;
+                        }
+                    );
+                } catch (e) {
+                    const t = createFuturisticTexture('pack', '', fallbackProcColor);
+                    mat.map = t; mat.needsUpdate = true;
+                }
+            };
+
+            setTex(frontMat, 'packfront.png');
+            setTex(backMat, 'packfront.png');
+
+            const materials = [sideMat, sideMat, sideMat, sideMat, frontMat, backMat];
+
+            packMesh = new THREE.Mesh(geometry, materials);
+            packMesh.name = "pack";
+            scene.add(packMesh);
+
+            // Idle animation for pack
+            gsap.to(packMesh.rotation, {
+                y: Math.PI * 2,
+                duration: 20,
+                repeat: -1,
+                ease: "none"
+            });
+            gsap.to(packMesh.position, {
+                y: 0.5,
+                duration: 2,
+                yoyo: true,
+                repeat: -1,
+                ease: "sine.inOut"
+            });
+        }
+
+        function applyPackTextures() {
+            if (!packMesh || !SELECTED_PACK) return;
+            // front
+            try {
+                texLoader.load(
+                    SELECTED_PACK.front_image,
+                    (tex) => {
+                        if ("colorSpace" in tex) tex.colorSpace = THREE.SRGBColorSpace;
+                        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        packMesh.material[4].map = tex; packMesh.material[4].needsUpdate = true;
+                    },
+                    undefined,
+                    () => {
+                        texLoader.load(
+                            'packfront.png',
+                            (t) => {
+                                if ("colorSpace" in t) t.colorSpace = THREE.SRGBColorSpace;
+                                t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                                packMesh.material[4].map = t; packMesh.material[4].needsUpdate = true;
+                            },
+                            undefined,
+                            () => {
+                                const t = createFuturisticTexture('pack', '', '#00eaff');
+                                packMesh.material[4].map = t; packMesh.material[4].needsUpdate = true;
+                            }
+                        );
+                    }
+                );
+            } catch (e) {}
+            // back
+            try {
+                texLoader.load(
+                    SELECTED_PACK.front_image,
+                    (tex) => {
+                        if ("colorSpace" in tex) tex.colorSpace = THREE.SRGBColorSpace;
+                        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        packMesh.material[5].map = tex; packMesh.material[5].needsUpdate = true;
+                    },
+                    undefined,
+                    () => {
+                        texLoader.load(
+                            'packfront.png',
+                            (t) => {
+                                if ("colorSpace" in t) t.colorSpace = THREE.SRGBColorSpace;
+                                t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                                packMesh.material[5].map = t; packMesh.material[5].needsUpdate = true;
+                            },
+                            undefined,
+                            () => {
+                                const t = createFuturisticTexture('pack', '', '#00eaff');
+                                packMesh.material[5].map = t; packMesh.material[5].needsUpdate = true;
+                            }
+                        );
+                    }
+                );
+            } catch (e) {}
+            packMesh.userData.selectedPackId = SELECTED_PACK.pack_id;
+        }
+
+        function formatRarityRates(weights) {
+            if (!weights) return '';
+            const toPct = (v) => (Number(v || 0) * 100).toFixed(1) + '%';
+            let html = '<div class="pack-rates">';
+            for (const key of RARITY_ORDER) {
+                const val = weights[key];
+                if (val == null) continue;
+                html += `
+                <div class="rate-line">
+                    <span class="rate-label" style="color: var(--c-${key})">${key.toUpperCase()}</span>
+                    <span class="rate-val">${toPct(val)}</span>
+                </div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderPackSelection() {
+            const grid = document.getElementById('pack-grid');
+            const container = document.getElementById('pack-selection');
+            const backdrop = document.getElementById('modal-backdrop');
+            const confirmBtn = document.getElementById('confirm-pack');
+            const cancelBtn = document.getElementById('cancel-pack');
+            if (!grid || !container || !PACKS || PACKS.length === 0) return;
+            grid.innerHTML = '';
+
+            // Ensure modal is visible on render
+            if (backdrop) backdrop.style.display = 'block';
+            container.style.display = 'block';
+            PENDING_PACK = null;
+            if (confirmBtn) confirmBtn.disabled = true;
+
+            PACKS.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'pack-item';
+                item.innerHTML = `
+                    <div class="pack-thumb">
+                        <img src="${p.front_image}" alt="${p.pack_name}" onerror="this.onerror=null; this.src='packs/front.png';" />
+                    </div>
+                    <div class="pack-meta">
+                        <div class="pack-title">${p.pack_name}</div>
+                        <div class="pack-desc">${p.description}</div>
+                        ${formatRarityRates(p.rarity_weights)}
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    // Visual select
+                    Array.from(grid.children).forEach(child => child.classList.remove('selected'));
+                    item.classList.add('selected');
+                    PENDING_PACK = p;
+                    if (confirmBtn) confirmBtn.disabled = false;
+                    playUIClick();
+                });
+                grid.appendChild(item);
+            });
+
+            if (confirmBtn && !confirmBtn._bound) {
+                confirmBtn.addEventListener('click', () => {
+                    if (!PENDING_PACK) return;
+                    SELECTED_PACK = PENDING_PACK;
+                    applyPackTextures();
+                    // Hide modal
+                    container.style.display = 'none';
+                    if (backdrop) backdrop.style.display = 'none';
+                    const instr = document.getElementById('instruction');
+                    if (instr) instr.textContent = "Click the pack to open";
+                    playUIClick();
+                });
+                confirmBtn._bound = true;
+            }
+
+            if (cancelBtn && !cancelBtn._bound) {
+                cancelBtn.addEventListener('click', () => {
+                    // Clear selection, keep modal open
+                    Array.from(grid.children).forEach(child => child.classList.remove('selected'));
+                    PENDING_PACK = null;
+                    if (confirmBtn) confirmBtn.disabled = true;
+                    playUIClick();
+                });
+                cancelBtn._bound = true;
+            }
+        }
+
+        function generateRarity() {
+            // Use selected pack's rarity_weights if available
+            if (SELECTED_PACK && SELECTED_PACK.rarity_weights) {
+                const weights = SELECTED_PACK.rarity_weights;
+                let r = Math.random();
+                let cum = 0;
+                for (const key of RARITY_ORDER) {
+                    const w = Number(weights[key] || 0);
+                    cum += w;
+                    if (r < cum) return key;
+                }
+                return 'common';
+            } else {
+                // Fallback default distribution (same as before)
+                const rand = Math.random();
+                if (rand < 0.001) return 'celestials';
+                if (rand < 0.006) return 'mythic';
+                if (rand < 0.016) return 'legendary';
+                if (rand < 0.066) return 'epic';
+                if (rand < 0.266) return 'rare';
+                if (rand < 0.566) return 'uncommon';
+                return 'common';
+            }
+        }
+
+        function createCard(cardData, index, total) {
+            // Map rarity from JSON to internal keys/colors
+            const raritySrc = (cardData.rarity || 'Common').toLowerCase();
+            const rarity = raritySrc === 'celestial' ? 'celestials' : raritySrc;
+
+            let colorHex = CONFIG.colors.common;
+            let glowIntensity = 0;
+            switch(rarity) {
+                case 'celestials': colorHex = CONFIG.colors.celestials; glowIntensity = 1.5; break;
+                case 'mythic':     colorHex = CONFIG.colors.mythic;     glowIntensity = 1.0; break;
+                case 'legendary':  colorHex = CONFIG.colors.legendary;  glowIntensity = 0.8; break;
+                case 'epic':       colorHex = CONFIG.colors.epic;       glowIntensity = 0.5; break;
+                case 'rare':       colorHex = CONFIG.colors.rare;       glowIntensity = 0.18; break;
+                case 'uncommon':   colorHex = CONFIG.colors.uncommon;   glowIntensity = 0.08; break;
+                default:           colorHex = CONFIG.colors.common;     glowIntensity = 0; break;
+            }
+
+            const geometry = new THREE.BoxGeometry(CONFIG.cardSize.w, CONFIG.cardSize.h, CONFIG.cardSize.d);
+
+            // Multi-material for front/back/sides
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const frontMat = new THREE.MeshStandardMaterial({
+                roughness: 0.5,
+                metalness: 0.7,
+                emissive: colorHex,
+                emissiveIntensity: 0 // Start with no glow until revealed
+            });
+            const backMat = new THREE.MeshStandardMaterial({
+                roughness: 0.5,
+                metalness: 0.7
+            });
+
+            // Load front texture: try local asset first to avoid CORS, then remote URL, then procedural
+            const setFrontTex = (tex) => {
+                if (tex && "colorSpace" in tex) tex.colorSpace = THREE.SRGBColorSpace;
+                if (tex && tex.anisotropy !== undefined) tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                frontMat.map = tex;
+                frontMat.needsUpdate = true;
+            };
+            const localFrontUrl = `cards/${cardData.id}.png`;
+            const remoteFrontUrl = cardData.image;
+            try {
+                texLoader.load(
+                    localFrontUrl,
+                    (t) => setFrontTex(t),
+                    undefined,
+                    () => {
+                        // local failed, try remote
+                        try {
+                            texLoader.load(
+                                remoteFrontUrl,
+                                (t2) => setFrontTex(t2),
+                                undefined,
+                                () => {
+                                    setFrontTex(createFuturisticTexture('card', (cardData.name || rarity).toUpperCase(), '#ffffff'));
+                                }
+                            );
+                        } catch (e2) {
+                            setFrontTex(createFuturisticTexture('card', (cardData.name || rarity).toUpperCase(), '#ffffff'));
+                        }
+                    }
+                );
+            } catch (e) {
+                setFrontTex(createFuturisticTexture('card', (cardData.name || rarity).toUpperCase(), '#ffffff'));
+            }
+
+            // Load back texture: JSON back_image -> local fallback -> procedural
+            const setBackTex = (tex) => {
+                if (tex && tex.anisotropy !== undefined) {
+                    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                }
+                if (tex && "colorSpace" in tex) {
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                }
+                backMat.map = tex;
+                backMat.needsUpdate = true;
+            };
+            try {
+                texLoader.load(
+                    cardData.back_image,
+                    (tex) => setBackTex(tex),
+                    undefined,
+                    () => {
+                        // Fallback to local asset to avoid CORS issues
+                        texLoader.load(
+                            'cards/back.png',
+                            (tex) => setBackTex(tex),
+                            undefined,
+                            () => setBackTex(createFuturisticTexture('pack', '', '#ffffff'))
+                        );
+                    }
+                );
+            } catch (e) {
+                texLoader.load(
+                    'cards/back.png',
+                    (tex) => setBackTex(tex),
+                    undefined,
+                    () => setBackTex(createFuturisticTexture('pack', '', '#ffffff'))
+                );
+            }
+
+            // Order: right, left, top, bottom, front, back
+            const materials = [sideMat, sideMat, sideMat, sideMat, frontMat, backMat];
+
+            const card = new THREE.Mesh(geometry, materials);
+
+            // Store data on the mesh for interaction
+            card.userData = {
+                isCard: true,
+                rarity: rarity,
+                name: cardData.name,
+                description: cardData.description,
+                image: cardData.image,
+                back_image: cardData.back_image,
+                flipped: false,
+                glowIntensity: glowIntensity,
+                basePos: new THREE.Vector3((index - (total-1)/2) * 2.8, 0, 0),
+                index: index
+            };
+
+            return card;
+        }
+
+        // Weighted random selection without replacement using drop_rate as relative weight
+        function pickWeightedUnique(pool, n) {
+            const weights = pool.map(c => {
+                const s = (c.drop_rate || '0%').toString().trim();
+                const num = parseFloat(s.replace('%','')) || 0;
+                return Math.max(0, num);
+            });
+            const chosen = [];
+            const used = new Set();
+            for (let k = 0; k < n && k < pool.length; k++) {
+                const total = weights.reduce((a,b) => a + b, 0);
+                if (total <= 0) break;
+                let r = Math.random() * total;
+                let idx = 0;
+                for (; idx < weights.length; idx++) {
+                    r -= weights[idx];
+                    if (r <= 0) break;
+                }
+                if (idx >= pool.length) idx = pool.length - 1;
+                chosen.push(pool[idx]);
+                used.add(idx);
+                weights[idx] = 0; // prevent duplicates
+            }
+            // Backfill deterministically if weights exhausted
+            for (let i = 0; chosen.length < n && i < pool.length; i++) {
+                if (!used.has(i)) chosen.push(pool[i]);
+            }
+            return chosen.slice(0, n);
+        }
+
+        // Show card info overlay in UI
+        function showCardInfo(card) {
+            const ui = document.getElementById('ui-container');
+            if (!ui) return;
+            let panel = document.getElementById('card-info-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'card-info-panel';
+                panel.style.position = 'absolute';
+                panel.style.top = '8%';
+                panel.style.left = '50%';
+                panel.style.transform = 'translateX(-50%)';
+                panel.style.background = 'rgba(0,0,0,0.6)';
+                panel.style.backdropFilter = 'blur(3px)';
+                panel.style.border = '1px solid rgba(0,234,255,0.5)';
+                panel.style.boxShadow = '0 0 12px rgba(0,234,255,0.25)';
+                panel.style.borderRadius = '8px';
+                panel.style.padding = '10px 14px';
+                panel.style.pointerEvents = 'none';
+                panel.style.maxWidth = '78%';
+                panel.style.textAlign = 'center';
+                ui.appendChild(panel);
+            }
+            const rarityKey = card.userData.rarity;
+            const rarityText = rarityKey.toUpperCase();
+            panel.innerHTML = `
+                <div style="font-weight:700;font-size:18px;letter-spacing:0.5px">${card.userData.name || 'Unknown Card'}</div>
+                <div style="font-size:12px;opacity:0.85;margin-top:2px">Rarity: <span style="color: var(--c-${rarityKey})">${rarityText}</span></div>
+                <div style="margin-top:6px;font-size:14px;line-height:1.35">${card.userData.description || ''}</div>
+            `;
+        }
+
+        // Utility: cleanup and reset helpers + post-open buttons
+        function cleanupCards() {
+            try {
+                cards.forEach((c) => {
+                    scene.remove(c);
+                    if (c.geometry && c.geometry.dispose) c.geometry.dispose();
+                    if (Array.isArray(c.material)) {
+                        c.material.forEach((m) => {
+                            if (m && m.dispose) m.dispose();
+                        });
+                    } else if (c.material && c.material.dispose) {
+                        c.material.dispose();
+                    }
+                });
+            } catch (e) { /* noop */ }
+            cards = [];
+            document.body.style.cursor = 'default';
+            const info = document.getElementById('card-info-panel');
+            if (info && info.parentNode) info.parentNode.removeChild(info);
+        }
+
+        function hidePostOpenButtons() {
+            const actions = document.getElementById('post-open-actions');
+            if (actions) actions.style.display = 'none';
+        }
+
+        function showPostOpenButtons() {
+            const ui = document.getElementById('ui-container');
+            if (!ui) return;
+            let wrap = document.getElementById('post-open-actions');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.id = 'post-open-actions';
+                wrap.style.position = 'absolute';
+                wrap.style.bottom = '12%';
+                wrap.style.left = '50%';
+                wrap.style.transform = 'translateX(-50%)';
+                wrap.style.display = 'flex';
+                wrap.style.gap = '10px';
+                wrap.style.pointerEvents = 'auto';
+                ui.appendChild(wrap);
+
+                const openBtn = document.createElement('button');
+                openBtn.id = 'btn-open-another';
+                openBtn.className = 'btn btn-primary';
+                openBtn.textContent = 'Open Another Pack';
+                openBtn.addEventListener('click', () => {
+                    resetToInitialState(false);
+                });
+
+                const menuBtn = document.createElement('button');
+                menuBtn.id = 'btn-back-menu';
+                menuBtn.className = 'btn';
+                menuBtn.textContent = 'Back to Menu';
+                menuBtn.addEventListener('click', () => {
+                    resetToInitialState(true);
+                });
+
+                wrap.appendChild(openBtn);
+                wrap.appendChild(menuBtn);
+            }
+            wrap.style.display = 'flex';
+        }
+
+        function resetToInitialState(showMenu) {
+            // Remove current cards and UI
+            cleanupCards();
+            hidePostOpenButtons();
+
+            // Remove existing pack if any
+            if (packMesh) {
+                try { scene.remove(packMesh); } catch (e) {}
+                packMesh = null;
+            }
+
+            // Reset flags
+            isOpening = false;
+            packOpened = false;
+
+            // Recreate pack and textures
+            createPack();
+            applyPackTextures && applyPackTextures();
+
+            const instr = document.getElementById('instruction');
+            if (showMenu) {
+                if (instr) instr.textContent = "Select a pack to begin";
+                // Show modal
+                renderPackSelection && renderPackSelection();
+            } else {
+                if (instr) instr.textContent = "Click the pack to open";
+            }
+        }
+
+        // --- INTERACTION & ANIMATION ---
+
+        function onClick(event) {
+            // Normalize mouse for raycaster
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+            // Block 3D interactions while modal is open
+            const modalEl = document.getElementById('pack-selection');
+            if (modalEl && getComputedStyle(modalEl).display !== 'none') {
+                return;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+
+                if (object.name === 'pack' && !isOpening && !packOpened) {
+                    openPackSequence();
+                } else if (object.userData && object.userData.isCard && packOpened && !object.userData.flipped) {
+                    flipCard(object);
+                }
+            }
+        }
+
+        // Hover effect
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+            if(packOpened) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(cards);
+                // Reset all cards slightly
+                cards.forEach(c => {
+                    if(!c.userData.flipped) {
+                        gsap.to(c.scale, { x:1, y:1, z:1, duration: 0.3 });
+                    }
+                });
+                // Scale up hovered card; show tooltip only if revealed
+                const hovered = (intersects.length > 0) ? intersects[0].object : null;
+                if (hovered && hovered.userData && hovered.userData.isCard) {
+                    document.body.style.cursor = 'pointer';
+                    if (!hovered.userData.flipped) {
+                        gsap.to(hovered.scale, { x:1.1, y:1.1, z:1.1, duration: 0.3 });
+                        HoverTooltip.hide();
+                    } else {
+                        gsap.to(hovered.scale, { x:1.1, y:1.1, z:1.1, duration: 0.3 });
+                        HoverTooltip.show(event.clientX, event.clientY, {
+                            name: hovered.userData.name,
+                            rarity: hovered.userData.rarity,
+                            description: hovered.userData.description
+                        });
+                    }
+                } else {
+                    document.body.style.cursor = 'default';
+                    HoverTooltip.hide();
+                }
+            }
+        }
+
+        function openPackSequence() {
+            isOpening = true;
+            document.getElementById('instruction').textContent = "Decoding sequence...";
+
+            const tl = gsap.timeline({
+                onComplete: () => {
+                   scene.remove(packMesh);
+                   spawnCards();
+                }
+            });
+
+            // Shake and glow up
+            tl.to(packMesh.rotation, { x: Math.PI * 0.1, y: "+=15", duration: 2, ease: "power2.in" }, 0);
+            tl.to(packMesh.scale, { x: 1.2, y: 1.2, z: 1.2, duration: 1.8, ease: "elastic.in(1, 0.3)" }, 0);
+            
+            // "Explosion" (shrink rapidly)
+            tl.to(packMesh.scale, { x: 0.01, y: 0.01, z: 0.01, duration: 0.3, ease: "power4.in" });
+        }
+
+        async function spawnCards() {
+            const cardCount = (SELECTED_PACK && SELECTED_PACK.cards_per_pack) ? SELECTED_PACK.cards_per_pack : 5;
+            revealedCount = 0;
+
+            // Ensure datasets are loaded
+            await Promise.all([CARD_DATA_READY, PACK_DATA_READY]);
+
+            if (!CARD_DATA || CARD_DATA.length === 0) {
+                console.warn('CARD_DATA is empty. Falling back to procedural cards.');
+                return;
+            }
+
+            // Helper to get a random card by rarity with fallback and no duplicates by name
+            const usedNames = new Set();
+            function pickRandomCardByRarity(targetR) {
+                const target = normalizeRarityStr(targetR);
+                const fallbacks = {
+                    celestials: ['mythic','legendary','epic','rare','uncommon','common'],
+                    mythic:     ['legendary','epic','rare','uncommon','common'],
+                    legendary:  ['epic','rare','uncommon','common'],
+                    epic:       ['rare','uncommon','common'],
+                    rare:       ['uncommon','common'],
+                    uncommon:   ['common'],
+                    common:     []
+                };
+                const tryRarities = [target, ...fallbacks[target] || []];
+                for (const r of tryRarities) {
+                    const list = CARD_DATA.filter(c => normalizeRarityStr(c.rarity) === normalizeRarityStr(r) && !usedNames.has(c.name));
+                    if (list.length > 0) {
+                        const choice = list[Math.floor(Math.random() * list.length)];
+                        usedNames.add(choice.name);
+                        return choice;
+                    }
+                }
+                // If all else fails, pick any unused, else any
+                const unused = CARD_DATA.filter(c => !usedNames.has(c.name));
+                return (unused.length ? unused : CARD_DATA)[Math.floor(Math.random() * (unused.length ? unused.length : CARD_DATA.length))];
+            }
+
+            const picked = [];
+            for (let i = 0; i < cardCount; i++) {
+                const rarity = generateRarity();
+                picked.push(pickRandomCardByRarity(rarity));
+            }
+
+            // Add obtained cards to inventory (persisted) and update UI
+            Inventory.addMany(picked.map(c => c.id));
+            Inventory.render();
+
+            for (let i = 0; i < picked.length; i++) {
+                const card = createCard(picked[i], i, cardCount);
+                // Start all cards at center, invisible, rotated to show back
+                card.position.set(0, 0, -1);
+                card.rotation.y = Math.PI;
+                card.scale.set(0,0,0);
+                scene.add(card);
+                cards.push(card);
+            }
+
+            // Fan out animation
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    isOpening = false;
+                    packOpened = true;
+                    const instrEl = document.getElementById('instruction');
+                    if (instrEl) instrEl.textContent = "Click cards to reveal";
+                }
+            });
+
+            cards.forEach((card, i) => {
+                tl.to(card.scale, { x:1, y:1, z:1, duration: 0.4, ease: "back.out(1.7)" }, i * 0.1);
+                tl.to(card.position, {
+                    x: card.userData.basePos.x,
+                    y: card.userData.basePos.y,
+                    z: card.userData.basePos.z,
+                    duration: 0.8,
+                    ease: "power3.out"
+                }, i * 0.1);
+                // Add a slight random tilt for realism
+                tl.to(card.rotation, {
+                    z: (Math.random() - 0.5) * 0.2,
+                    duration: 0.8
+                }, i * 0.1);
+            });
+        }
+
+        function flipCard(card) {
+            if(card.userData.flipped) return;
+            card.userData.flipped = true;
+
+            // Sound effect placeholder (real apps would play audio here)
+
+            gsap.to(card.rotation, {
+                y: Math.PI * 2, // Spin to front (assuming front is 0 or 2PI)
+                duration: 0.8,
+                ease: "back.out(1.5)",
+                onComplete: () => {
+                    showCardInfo(card);
+                    revealedCount++;
+                    if (revealedCount >= cards.length) {
+                        const instrEl = document.getElementById('instruction');
+                        if (instrEl) instrEl.textContent = "All cards revealed";
+                        showPostOpenButtons();
+                    }
+                    // Activate rarity effects after flip
+                    if (card.userData.rarity !== 'common') {
+                        // Turn on emissive glow for the front material (index 4)
+                        gsap.to(card.material[4], {
+                            emissiveIntensity: card.userData.glowIntensity,
+                            duration: 0.5
+                        });
+
+                        // Rarity-specific VFX
+                        if (card.userData.rarity === 'legendary' || card.userData.rarity === 'epic') {
+                            const light = new THREE.PointLight(card.material[4].emissive, 0.4, 3);
+                            light.position.copy(card.position);
+                            light.position.z += 1;
+                            scene.add(light);
+                            // Animate light pulsing
+                            gsap.to(light, { intensity: 1.2, duration: 0.8, yoyo: true, repeat: 2 });
+                        } else if (card.userData.rarity === 'mythic') {
+                            addMythicEffects(card);
+                        } else if (card.userData.rarity === 'celestials') {
+                            addCelestialEffects(card);
+                        }
+                    }
+                }
+            });
+
+            // Lift card slightly when flipping
+            gsap.to(card.position, { z: 1.5, y: 0.5, duration: 0.4, yoyo: true, repeat: 1, ease: "sine.out" });
+            // Straighten it out
+            gsap.to(card.rotation, { z: 0, duration: 0.4 });
+        }
+
+        // --- RARITY SPECIAL EFFECTS ---
+        function addMythicEffects(card) {
+            // Pulsing fiery light
+            const light = new THREE.PointLight(CONFIG.colors.mythic, 0.0, 6);
+            light.position.copy(card.position);
+            light.position.z += 1.2;
+            scene.add(light);
+            gsap.to(light, { intensity: 1.6, duration: 0.6, yoyo: true, repeat: 3 });
+
+            // Ember particles
+            const count = 90;
+            const positions = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const r = 0.6 + Math.random() * 0.6;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta);
+                const z = r * Math.cos(phi);
+                positions[i*3] = x;
+                positions[i*3+1] = y;
+                positions[i*3+2] = z;
+            }
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({
+                color: CONFIG.colors.mythic,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.9,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            const points = new THREE.Points(geom, mat);
+            points.position.copy(card.position);
+            scene.add(points);
+            // Drift upward
+            gsap.to(points.position, { y: card.position.y + 1.0, duration: 1.6, ease: "sine.out" });
+            // Fade out and cleanup
+            gsap.to(points.material, { opacity: 0, duration: 1.2, delay: 1.0, onComplete: () => {
+                scene.remove(points);
+                geom.dispose();
+                mat.dispose();
+            }});
+        }
+
+        function addCelestialEffects(card) {
+            // Halo rings
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.03, 16, 100), ringMat);
+            ring.position.copy(card.position);
+            ring.rotation.x = Math.PI / 2;
+            scene.add(ring);
+            gsap.to(ring.rotation, { z: "+=" + Math.PI * 2, duration: 6, repeat: -1, ease: "none" });
+
+            const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.02, 16, 100), ringMat.clone());
+            ring2.position.copy(card.position);
+            ring2.rotation.z = Math.PI / 4;
+            scene.add(ring2);
+            gsap.to(ring2.rotation, { x: "+=" + Math.PI * 2, duration: 8, repeat: -1, ease: "none" });
+
+            // Star sparkles
+            const starCount = 140;
+            const starPositions = new Float32Array(starCount * 3);
+            for (let i = 0; i < starCount; i++) {
+                const r = 0.8 + Math.random() * 1.2;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = r * Math.sin(phi) * Math.sin(theta);
+                const z = r * Math.cos(phi);
+                starPositions[i*3] = x;
+                starPositions[i*3+1] = y;
+                starPositions[i*3+2] = z;
+            }
+            const starGeo = new THREE.BufferGeometry();
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.035, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+            const stars = new THREE.Points(starGeo, starMat);
+            stars.position.copy(card.position);
+            scene.add(stars);
+            gsap.to(starMat, { opacity: 0.4, duration: 1.2, yoyo: true, repeat: -1 });
+
+            // Soft spotlight from above
+            const spot = new THREE.SpotLight(0xffffff, 0.0, 10, Math.PI / 6, 0.7, 1);
+            spot.position.set(card.position.x, card.position.y + 3.5, card.position.z + 1.5);
+            spot.target = card;
+            scene.add(spot);
+            gsap.to(spot, { intensity: 1.4, duration: 0.6, yoyo: true, repeat: 3 });
+
+            // Cleanup after a while to avoid leaks
+            gsap.to([ring.material, ring2.material], { opacity: 0, duration: 1.0, delay: 6.0, onComplete: () => {
+                scene.remove(ring); scene.remove(ring2);
+                ring.geometry.dispose(); ring.material.dispose();
+                ring2.geometry.dispose(); ring2.material.dispose();
+            }});
+            gsap.to(starMat, { opacity: 0, duration: 1.0, delay: 6.0, onComplete: () => {
+                scene.remove(stars);
+                starGeo.dispose(); starMat.dispose();
+            }});
+        }
+
+        // --- MAIN LOOP ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Slight ambient movement for opened cards
+            if (packOpened) {
+                const time = performance.now() * 0.001;
+                cards.forEach((card, i) => {
+                    if(!card.userData.flipped) {
+                         // Floating effect for unrevealed cards
+                         card.position.y = Math.sin(time + i) * 0.1;
+                    }
+                });
+            }
+
+            composer.render();
+        }
+
+        // Start the application
+        startPreloader();
+
+        // Initialize NFT Dashboard
+        NFTDashboard.init();
+    </script>
+</body>
+</html>

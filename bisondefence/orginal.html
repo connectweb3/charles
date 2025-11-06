@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Castle Defense</title>
+    <style>
+        :root { --primary: #3498db; --danger: #e74c3c; --success: #2ecc71; --warning: #f1c40f; --dark: #2c3e50; --light: #ecf0f1; }
+        body { margin: 0; overflow: hidden; background: #111; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        canvas { display: block; outline: none; }
+        
+        /* UI Common */
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
+        .pointer-events-auto { pointer-events: auto; }
+        .hidden { display: none !important; }
+        
+        button { background: var(--dark); color: var(--light); border: 2px solid var(--primary); padding: 10px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-weight: bold; text-transform: uppercase; box-shadow: 0 4px #1a252f; touch-action: manipulation; }
+        button:active { transform: translateY(4px); box-shadow: 0 0px #1a252f; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; border-color: #7f8c8d; }
+        button.upgrade-btn { display: flex; flex-direction: column; align-items: center; min-width: 100px; font-size: 12px; }
+        button.upgrade-btn span.big { font-size: 18px; }
+        button.danger { border-color: var(--danger); }
+        button.success { border-color: var(--success); background: #27ae60; }
+
+        /* HUD */
+        #hud-top { display: flex; justify-content: space-between; padding: 10px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); color: white; font-weight: bold; text-shadow: 1px 1px 2px black; pointer-events: auto; }
+        .stat-box { display: flex; align-items: center; gap: 10px; }
+        #hp-bar-ctn { width: 150px; height: 15px; background: #555; border: 2px solid white; border-radius: 4px; overflow: hidden; position: relative; }
+        #hp-bar-fill { height: 100%; background: var(--success); width: 100%; transition: width 0.2s; }
+        #hp-text { position: absolute; width: 100%; text-align: center; top: -2px; font-size: 12px; line-height: 15px; }
+        #gold-display { color: var(--warning); font-size: 20px; }
+
+        #hud-bottom { margin-top: auto; padding: 10px; display: flex; gap: 10px; justify-content: center; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); pointer-events: auto; flex-wrap: wrap; }
+        #wave-ctrl { position: absolute; top: 60px; width: 100%; text-align: center; pointer-events: none; }
+        #start-wave-btn { pointer-events: auto; padding: 10px 30px; font-size: 20px; animation: pulse 2s infinite; }
+        
+        /* Overlays */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 100; backdrop-filter: blur(5px); }
+        .overlay h1 { font-size: 4rem; margin: 0 0 20px 0; text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 20px currentColor; }
+        .overlay p { font-size: 1.2rem; margin-bottom: 30px; color: #bdc3c7; text-align: center; max-width: 80%; }
+        .title-screen h1 { color: var(--primary); }
+        .victory-screen h1 { color: var(--warning); }
+        .defeat-screen h1 { color: var(--danger); }
+        
+        .settings-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; }
+        .toggle-switch { display: flex; border: 1px solid #7f8c8d; border-radius: 4px; overflow: hidden; cursor: pointer; }
+        .toggle-opt { padding: 5px 10px; background: #34495e; font-size: 12px; }
+        .toggle-opt.active { background: var(--primary); color: white; }
+
+        /* Floating Text (Damage Numbers) */
+        .floating-text { position: absolute; color: white; font-weight: bold; font-size: 20px; text-shadow: 2px 2px 0 #000; pointer-events: none; will-change: transform, opacity; animation: floatUp 0.8s forwards ease-out; z-index: 50; }
+        .crit { color: var(--warning); font-size: 28px; }
+        
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); box-shadow: 0 0 15px var(--success); } 100% { transform: scale(1); } }
+        @keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, 0) scale(0.5); } 20% { transform: translate(-50%, -20px) scale(1.2); } 100% { opacity: 0; transform: translate(-50%, -60px) scale(1); } }
+
+        /* Mobile Tweaks */
+        @media (max-width: 600px) {
+            #hud-top { font-size: 12px; flex-wrap: wrap; }
+            #hp-bar-ctn { width: 100px; }
+            button.upgrade-btn { min-width: 70px; padding: 5px; }
+            button.upgrade-btn span.big { font-size: 14px; }
+            .overlay h1 { font-size: 2.5rem; }
+        }
+    </style>
+    
+    <!-- Import Maps for CDNs -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "gsap": "https://unpkg.com/gsap@3.12.4/index.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- 3D Container -->
+    <div id="game-container"></div>
+
+    <!-- Floating Text Container -->
+    <div id="floating-text-layer" class="ui-layer"></div>
+
+    <!-- HUD -->
+    <div id="hud" class="ui-layer hidden">
+        <div id="hud-top">
+            <div class="stat-box">
+                <div id="hp-bar-ctn"><div id="hp-bar-fill"></div><span id="hp-text">100/100</span></div>
+            </div>
+            <div class="stat-box">Wave: <span id="wave-num">1</span>/10</div>
+            <div class="stat-box">Enemies: <span id="enemy-count">0</span></div>
+            <div class="stat-box">💰 <span id="gold-display">0</span></div>
+            <div class="stat-box">
+                <button id="btn-pause" style="padding: 2px 8px;">II</button>
+                <button id="btn-mute" style="padding: 2px 8px;">🔊</button>
+            </div>
+        </div>
+        <div id="wave-ctrl">
+            <button id="start-wave-btn" class="success hidden">Start Wave <span id="next-wave-num">1</span></button>
+        </div>
+        <div id="hud-bottom">
+            <button id="btn-upg-dmg" class="upgrade-btn pointer-events-auto">
+                <span>⚔️ DMG Lv.<span id="dmg-lvl">1</span></span>
+                <span class="big" id="dmg-cost">50g</span>
+            </button>
+            <button id="btn-upg-hp" class="upgrade-btn pointer-events-auto">
+                <span>❤️ Max HP Lv.<span id="hp-lvl">1</span></span>
+                <span class="big" id="hp-cost">50g</span>
+            </button>
+            <button id="btn-repair" class="upgrade-btn pointer-events-auto" style="border-color:var(--success)">
+                <span>➕ Repair</span>
+                <span class="big" id="repair-cost">20g</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay title-screen pointer-events-auto">
+        <h1>Citadel Guard</h1>
+        <p>Defend the castle against 10 waves of geometric foes.<br>Upgrade your firepower and fortifications.</p>
+        <button id="btn-play" style="font-size: 24px; padding: 15px 40px;" class="success">PLAY</button>
+        <div class="settings-row">
+            <span>Graphics:</span>
+            <div class="toggle-switch" id="quality-toggle">
+                <div class="toggle-opt" data-q="low">Low</div>
+                <div class="toggle-opt active" data-q="high">High</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="overlay hidden pointer-events-auto">
+        <h1>PAUSED</h1>
+        <button id="btn-resume" class="success" style="margin-bottom: 10px;">RESUME</button>
+        <button id="btn-restart-pause" class="danger">RESTART</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="overlay hidden pointer-events-auto">
+        <h1 id="go-title">DEFEAT</h1>
+        <p id="go-stats">You survived until Wave 3.</p>
+        <button id="btn-restart" class="success" style="font-size: 24px;">PLAY AGAIN</button>
+    </div>
+
+<!-- Main Game Logic -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import gsap from 'gsap';
+
+// --- CONFIG & CONSTANTS ---
+const C = {
+    TOTAL_WAVES: 10,
+    BASE_GOLD: 60,
+    CASTLE_HP_BASE: 100,
+    CASTLE_DMG_BASE: 10,
+    CASTLE_RANGE: 12,
+    CASTLE_FIRE_RATE: 0.5, // seconds per shot
+    PROJ_SPEED: 25,
+    UPG_COST_BASE: 50,
+    UPG_SCALE: 1.6,
+    REPAIR_COST_PER_HP: 1,
+    COLORS: {
+        castle: 0x3498db, castleHurt: 0xe74c3c, ground: 0x2c3e50, path: 0x34495e,
+        enemy1: 0xe74c3c, enemy2: 0xf1c40f, enemy3: 0x9b59b6, // Grunt, Runner, Tank
+        proj: 0x2ecc71, projLight: 0x8affb5
+    }
+};
+
+// --- GAME STATE ---
+const State = {
+    gold: 0,
+    wave: 0,
+    hp: 0,
+    maxHp: 0,
+    dmgLvl: 1,
+    hpLvl: 1,
+    damage: 0,
+    status: 'start', // start, playing, wave_end, paused, over
+    enemiesAlive: 0,
+    enemiesToSpawn: 0,
+    muted: localStorage.getItem('cg_muted') === 'true',
+    quality: localStorage.getItem('cg_quality') || 'high',
+};
+
+// --- ENGINE GLOBALS ---
+let scene, camera, renderer, composer, controls;
+let clock = new THREE.Clock();
+let castle, healthBarMesh;
+const tmpVec = new THREE.Vector3(); // Reusable vector
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// --- POOLS ---
+const pools = { enemies: [], projectiles: [], particles: [] };
+const active = { enemies: [], projectiles: [], particles: [] };
+
+// --- AUDIO SYSTEM (Synthesized) ---
+const AudioSys = (() => {
+    let ctx = null;
+    const init = () => {
+        if(ctx) return;
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+    };
+    
+    const playTone = (freq, type, duration, vol, slideToFreq = null) => {
+        if (State.muted || !ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        if(slideToFreq) osc.frequency.exponentialRampToValueAtTime(slideToFreq, ctx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+    };
+
+    return {
+        init,
+        resume: () => { if(ctx && ctx.state === 'suspended') ctx.resume(); },
+        shoot: () => playTone(800, 'square', 0.1, 0.1, 400),
+        hit: () => playTone(200, 'sawtooth', 0.1, 0.1),
+        death: () => playTone(150, 'sine', 0.3, 0.2, 50),
+        ui: () => playTone(1200, 'sine', 0.05, 0.05),
+        error: () => playTone(100, 'square', 0.2, 0.1),
+        win: () => { playTone(400, 'sine', 0.2, 0.2); setTimeout(()=>playTone(600, 'sine', 0.4, 0.2), 200); },
+        lose: () => { playTone(300, 'sawtooth', 0.5, 0.2, 50); }
+    };
+})();
+
+// --- UTILS ---
+const getCost = (lvl) => Math.floor(C.UPG_COST_BASE * Math.pow(C.UPG_SCALE, lvl - 1));
+const formatNum = (n) => Math.floor(n);
+
+// ------------------ CLASSES ------------------
+
+class GameObject {
+    constructor(mesh) {
+        this.mesh = mesh;
+        this.active = false;
+        scene.add(mesh);
+        mesh.visible = false;
+    }
+    spawn(pos) {
+        this.mesh.position.copy(pos);
+        this.mesh.visible = true;
+        this.active = true;
+    }
+    despawn() {
+        this.mesh.visible = false;
+        this.active = false;
+    }
+}
+
+class Enemy extends GameObject {
+    constructor() {
+        // Create a group for mesh + HP bar
+        const group = new THREE.Group();
+        
+        // Body
+        const geo = new THREE.IcosahedronGeometry(0.5, 0); // Low poly look
+        const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+        const body = new THREE.Mesh(geo, mat);
+        body.castShadow = true;
+        body.position.y = 0.5;
+        group.add(body);
+
+        // Glowing eye
+        const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Gets tinted
+        const eye = new THREE.Mesh(eyeGeo, eyeMat);
+        eye.position.set(0, 0.5, 0.4);
+        group.add(eye);
+
+        // HP Bar (Billboard)
+        const bgMat = new THREE.SpriteMaterial({ color: 0x000000, opacity:0.7 });
+        const hpBg = new THREE.Sprite(bgMat);
+        hpBg.scale.set(1, 0.15, 1);
+        hpBg.position.set(0, 1.2, 0);
+        group.add(hpBg);
+
+        const fgMat = new THREE.SpriteMaterial({ color: C.COLORS.enemy1 });
+        const hpFg = new THREE.Sprite(fgMat);
+        hpFg.scale.set(1, 0.15, 1); // width gets updated
+        hpFg.position.set(0, 1.2, 0.01);
+        hpFg.center.set(0, 0.5); // Anchor left
+        hpBg.add(hpFg); // parent to bg for easier positioning
+        hpFg.position.x = -0.5;
+
+        super(group);
+        this.body = body;
+        this.eye = eye;
+        this.hpBg = hpBg;
+        this.hpFg = hpFg;
+    }
+
+    init(type, path) {
+        this.type = type;
+        this.path = path;
+        this.pathIdx = 0;
+        
+        // Stats based on type: 0=Grunt, 1=Runner, 2=Tank
+        const waveMult = 1 + (State.wave * 0.15);
+        if (type === 0) { // Grunt
+            this.hp = this.maxHp = 30 * waveMult;
+            this.speed = 3.5;
+            this.color = C.COLORS.enemy1;
+            this.gold = 5;
+            this.body.scale.set(1,1,1);
+        } else if (type === 1) { // Runner
+            this.hp = this.maxHp = 15 * waveMult;
+            this.speed = 6.0;
+            this.color = C.COLORS.enemy2;
+            this.gold = 7;
+            this.body.scale.set(0.7, 0.7, 1.2);
+        } else { // Tank
+            this.hp = this.maxHp = 80 * waveMult;
+            this.speed = 2.0;
+            this.color = C.COLORS.enemy3;
+            this.gold = 15;
+            this.body.scale.set(1.4, 1.4, 1.4);
+        }
+
+        this.body.material.color.setHex(this.color);
+        this.eye.material.color.setHex(this.color).multiplyScalar(2); // emissive boost for bloom
+        this.hpFg.material.color.setHex(this.color);
+        
+        this.spawn(this.path[0]);
+        // Offset spawn slightly to avoid perfect stacking
+        this.mesh.position.x += (Math.random() - 0.5) * 1;
+        this.mesh.position.z += (Math.random() - 0.5) * 1;
+    }
+
+    update(dt) {
+        if (!this.active) return;
+
+        // Simple path following
+        if (this.pathIdx < this.path.length) {
+            const target = this.path[this.pathIdx];
+            tmpVec.copy(target).sub(this.mesh.position);
+            tmpVec.y = 0; // Keep on ground
+            const dist = tmpVec.length();
+
+            if (dist < 0.2) {
+                this.pathIdx++;
+                if(this.pathIdx >= this.path.length) {
+                    // Reached castle
+                    damageCastle(this.hp); // Damage based on remaining enemy HP? Or fixed? Lets do fixed.
+                    this.takeDamage(9999); // Kill enemy
+                }
+            } else {
+                tmpVec.normalize();
+                this.mesh.position.add(tmpVec.multiplyScalar(this.speed * dt));
+                // Look at target
+                this.mesh.lookAt(target.x, this.mesh.position.y, target.z);
+            }
+        }
+        
+        // Wobble animation
+        this.body.position.y = 0.5 + Math.sin(clock.elapsedTime * this.speed * 2) * 0.1;
+        this.body.rotation.z = Math.sin(clock.elapsedTime * this.speed) * 0.1;
+    }
+
+    takeDamage(amt) {
+        this.hp -= amt;
+        
+        // Flash white
+        const oldColor = this.body.material.color.getHex();
+        this.body.material.color.setHex(0xffffff);
+        setTimeout(() => { if(this.active) this.body.material.color.setHex(oldColor); }, 50);
+
+        // Update HP Bar
+        const pct = Math.max(0, this.hp / this.maxHp);
+        this.hpFg.scale.x = pct;
+        
+        UI.spawnFloatingText(Math.round(amt), this.mesh.position);
+
+        if (this.hp <= 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        AudioSys.death();
+        spawnParticles(this.mesh.position, this.color, 10);
+        this.despawn();
+        returnToPool(pools.enemies, active.enemies, this);
+        State.enemiesAlive--;
+        
+        if (this.hp > -9000) { // Not reached castle
+            addGold(this.gold);
+        }
+        UI.updateHUD();
+        checkWaveEnd();
+    }
+}
+
+class Projectile extends GameObject {
+    constructor() {
+        const geo = new THREE.SphereGeometry(0.2, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: C.COLORS.projLight }); // Emissive via bloom
+        const mesh = new THREE.Mesh(geo, mat);
+        
+        // Trail
+        const trailGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(5 * 3); // 5 points
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const trailMat = new THREE.LineBasicMaterial({ color: C.COLORS.proj, transparent: true, opacity: 0.5 });
+        const trail = new THREE.Line(trailGeo, trailMat);
+        trail.frustumCulled = false; // Optimization shortcut
+        
+        const group = new THREE.Group();
+        group.add(mesh);
+        scene.add(trail); // Trail separate from rotation
+        
+        super(group);
+        this.trail = trail;
+        this.trailPos = [];
+    }
+
+    fire(targetEnemy) {
+        this.target = targetEnemy;
+        this.lastTargetPos = new THREE.Vector3().copy(targetEnemy.mesh.position);
+        this.spawn(new THREE.Vector3(0, 2.5, 0)); // Top of castle
+        AudioSys.shoot();
+        
+        // Reset trail
+        this.trail.visible = true;
+        this.trailPos = [this.mesh.position.clone(), this.mesh.position.clone()];
+    }
+
+    update(dt) {
+        if (!this.active) return;
+
+        let dest = this.lastTargetPos;
+        if (this.target && this.target.active) {
+            dest = this.target.mesh.position;
+            // Lead target slightly based on enemy speed? Nah, homing is fine.
+            dest = tmpVec.copy(dest).add(new THREE.Vector3(0, 0.5, 0)); // Aim at center
+            this.lastTargetPos.copy(dest);
+        }
+
+        tmpVec.copy(dest).sub(this.mesh.position);
+        const dist = tmpVec.length();
+
+        if (dist < 0.5) {
+            // Hit
+            if (this.target && this.target.active) {
+                this.target.takeDamage(State.damage);
+                AudioSys.hit();
+                spawnParticles(this.mesh.position, C.COLORS.projLight, 5);
+            }
+            this.retire();
+        } else {
+            tmpVec.normalize();
+            this.mesh.position.add(tmpVec.multiplyScalar(C.PROJ_SPEED * dt));
+            
+            // Update trail
+            this.trailPos.unshift(this.mesh.position.clone());
+            if(this.trailPos.length > 5) this.trailPos.pop();
+            
+            const posAttr = this.trail.geometry.attributes.position;
+            for(let i=0; i<this.trailPos.length; i++){
+                posAttr.setXYZ(i, this.trailPos[i].x, this.trailPos[i].y, this.trailPos[i].z);
+            }
+            posAttr.needsUpdate = true;
+        }
+
+        // Failsafe: too far
+        if (this.mesh.position.length() > 30) this.retire();
+    }
+    
+    retire() {
+        this.despawn();
+        this.trail.visible = false;
+        this.target = null;
+        returnToPool(pools.projectiles, active.projectiles, this);
+    }
+}
+
+// Minimal Particle System
+class Particle extends GameObject {
+    constructor() {
+        const geo = new THREE.PlaneGeometry(0.3, 0.3);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, side: THREE.DoubleSide });
+        super(new THREE.Mesh(geo, mat));
+        this.velocity = new THREE.Vector3();
+        this.life = 0;
+    }
+    burst(pos, color) {
+        this.spawn(pos);
+        this.mesh.material.color.setHex(color);
+        this.mesh.material.opacity = 1;
+        this.mesh.lookAt(camera.position); // Billboard
+        
+        // Random spread velocity
+        this.velocity.set(Math.random()-0.5, Math.random()-0.5, Math.random()-0.5).normalize().multiplyScalar(5 + Math.random()*5);
+        this.life = 0.5; // seconds
+    }
+    update(dt) {
+        if(!this.active) return;
+        this.life -= dt;
+        if(this.life <= 0) {
+            this.despawn();
+            returnToPool(pools.particles, active.particles, this);
+            return;
+        }
+        this.mesh.position.add(tmpVec.copy(this.velocity).multiplyScalar(dt));
+        this.mesh.material.opacity = this.life * 2;
+        this.mesh.scale.setScalar(1 - this.life); // shrinking
+    }
+}
+
+
+// ------------------ SYSTEMS ------------------
+
+// Pooling Helpers
+function getFromPool(pool, activeList, Factory) {
+    let obj = pool.length > 0 ? pool.pop() : new Factory();
+    activeList.push(obj);
+    return obj;
+}
+function returnToPool(pool, activeList, obj) {
+    const idx = activeList.indexOf(obj);
+    if (idx > -1) activeList.splice(idx, 1);
+    pool.push(obj);
+}
+
+function spawnParticles(pos, color, count) {
+    if (State.quality === 'low') count = Math.floor(count/2); // optimization
+    for(let i=0; i<count; i++) {
+        const p = getFromPool(pools.particles, active.particles, Particle);
+        p.burst(pos, color);
+    }
+}
+
+// --- SETUP FUNCTIONS ---
+
+function initEngine() {
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: State.quality === 'high', powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if (State.quality === 'high') {
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
+    document.getElementById('game-container').appendChild(renderer.domElement);
+
+    // Scene & Camera
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+    // Isometric-ish angle
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
+    camera.position.set(20, 20, 20);
+
+    // Controls
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.maxPolarAngle = Math.PI / 2.2; // Don't go below ground
+    controls.minDistance = 10;
+    controls.maxDistance = 40;
+    controls.target.set(0, 0, 0);
+
+    // Lights
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 5);
+    if (State.quality === 'high') {
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.left = -15; dirLight.shadow.camera.right = 15;
+        dirLight.shadow.camera.top = 15; dirLight.shadow.camera.bottom = -15;
+    }
+    scene.add(dirLight);
+
+    // Postprocessing
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    if (State.quality === 'high') {
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.0, 0.4, 0.85);
+        // Threshold, strength, radius
+        bloomPass.threshold = 0.2;
+        bloomPass.strength = 0.8;
+        bloomPass.radius = 0.5;
+        composer.addPass(bloomPass);
+    }
+
+    window.addEventListener('resize', onResize);
+}
+
+function createWorld() {
+    // Ground
+    const groundGeo = new THREE.BoxGeometry(30, 1, 30);
+    const groundMat = new THREE.MeshLambertMaterial({ color: C.COLORS.ground });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.y = -0.5;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Paths (Visual only)
+    const pathMat = new THREE.MeshLambertMaterial({ color: C.COLORS.path });
+    const pathGeoNS = new THREE.BoxGeometry(4, 1.05, 30);
+    const pathGeoEW = new THREE.BoxGeometry(30, 1.05, 4);
+    const pathNS = new THREE.Mesh(pathGeoNS, pathMat);
+    const pathEW = new THREE.Mesh(pathGeoEW, pathMat);
+    pathNS.position.y = -0.5; pathNS.receiveShadow = true;
+    pathEW.position.y = -0.5; pathEW.receiveShadow = true;
+    scene.add(pathNS, pathEW);
+
+    // CASTLE Group
+    castle = new THREE.Group();
+    
+    // Base
+    const baseGeo = new THREE.BoxGeometry(5, 2, 5);
+    const wallMat = new THREE.MeshPhongMaterial({ color: C.COLORS.castle });
+    const base = new THREE.Mesh(baseGeo, wallMat);
+    base.position.y = 1;
+    base.castShadow = true; base.receiveShadow = true;
+    castle.add(base);
+
+    // Towers
+    const towerGeo = new THREE.CylinderGeometry(0.8, 1, 3, 6);
+    const roofGeo = new THREE.ConeGeometry(1.2, 1.5, 6);
+    const roofMat = new THREE.MeshPhongMaterial({ color: 0x2980b9 });
+    
+    [[-2.5, -2.5], [2.5, -2.5], [2.5, 2.5], [-2.5, 2.5]].forEach(pos => {
+        const t = new THREE.Mesh(towerGeo, wallMat);
+        t.position.set(pos[0], 1.5, pos[1]);
+        t.castShadow = true;
+        const r = new THREE.Mesh(roofGeo, roofMat);
+        r.position.y = 2.25;
+        t.add(r);
+        castle.add(t);
+    });
+
+    // 3D Health Bar for Castle
+    const hpBgGeo = new THREE.PlaneGeometry(4, 0.5);
+    const hpBgMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const hpBg = new THREE.Mesh(hpBgGeo, hpBgMat);
+    hpBg.position.set(0, 4.5, 0);
+    
+    const hpFgGeo = new THREE.PlaneGeometry(3.8, 0.3);
+    const hpFgMat = new THREE.MeshBasicMaterial({ color: C.COLORS.proj });
+    healthBarMesh = new THREE.Mesh(hpFgGeo, hpFgMat);
+    healthBarMesh.position.z = 0.01;
+    // Pivot tweak for scaling from left
+    healthBarMesh.geometry.translate(1.9, 0, 0); 
+    healthBarMesh.position.x = -1.9;
+
+    hpBg.add(healthBarMesh);
+    castle.add(hpBg);
+    castle.hpBarRoot = hpBg; // Ref for billboarding
+
+    scene.add(castle);
+
+    // Pre-populate pools
+    for(let i=0; i<50; i++) pools.enemies.push(new Enemy());
+    for(let i=0; i<20; i++) pools.projectiles.push(new Projectile());
+    for(let i=0; i<50; i++) pools.particles.push(new Particle());
+}
+
+// Define Paths (Start -> Castle Center)
+const PATHS = [
+    [new THREE.Vector3(0, 0, -15), new THREE.Vector3(0, 0, 0)], // North
+    [new THREE.Vector3(0, 0, 15), new THREE.Vector3(0, 0, 0)],  // South
+    [new THREE.Vector3(-15, 0, 0), new THREE.Vector3(0, 0, 0)], // West
+    [new THREE.Vector3(15, 0, 0), new THREE.Vector3(0, 0, 0)]   // East
+];
+
+// --- GAME LOGIC ---
+
+function initGame() {
+    State.gold = C.BASE_GOLD;
+    State.wave = 0;
+    State.dmgLvl = 1;
+    State.hpLvl = 1;
+    updateStats();
+    State.hp = State.maxHp;
+    State.status = 'wave_end';
+    
+    // Reset scene entities
+    [...active.enemies, ...active.projectiles, ...active.particles].forEach(o => o.despawn());
+    active.enemies.length = 0; active.projectiles.length = 0; active.particles.length = 0;
+    
+    // Repopulate pools if emptied heavily
+    while(pools.enemies.length < 50) pools.enemies.push(new Enemy());
+
+    UI.showScreen('hud');
+    document.getElementById('start-wave-btn').classList.remove('hidden');
+    UI.updateHUD();
+    updateCastleHPBar();
+}
+
+function updateStats() {
+    State.damage = Math.floor(C.CASTLE_DMG_BASE * Math.pow(1.2, State.dmgLvl - 1));
+    const oldMax = State.maxHp;
+    State.maxHp = Math.floor(C.CASTLE_HP_BASE * Math.pow(1.2, State.hpLvl - 1));
+    if(State.hp > 0 && oldMax > 0) {
+        // Heal a bit on upgrade
+        State.hp = Math.min(State.maxHp, State.hp + Math.floor((State.maxHp - oldMax) + State.maxHp*0.1));
+    } else if (State.hp === 0) {
+        State.hp = State.maxHp; // First init
+    }
+    updateCastleHPBar();
+}
+
+let waveSpawnTimer = 0;
+let waveSpawnCount = 0;
+let waveData = null;
+
+function startWave() {
+    if(State.wave >= C.TOTAL_WAVES) return; // Victory handled elsewhere
+    
+    State.wave++;
+    State.status = 'playing';
+    document.getElementById('start-wave-btn').classList.add('hidden');
+    
+    // Wave Logic generates difficulty
+    const count = 5 + Math.floor(State.wave * 2.5);
+    // Ratios of types based on wave
+    let weights = [1, 0, 0]; // Grunt, Runner, Tank
+    if (State.wave > 2) weights = [0.7, 0.3, 0];
+    if (State.wave > 5) weights = [0.5, 0.3, 0.2];
+    if (State.wave > 8) weights = [0.3, 0.3, 0.4];
+    
+    waveData = {
+        count: count,
+        interval: Math.max(0.3, 1.5 - (State.wave * 0.1)),
+        weights: weights
+    };
+    
+    State.enemiesToSpawn = count;
+    State.enemiesAlive = 0;
+    waveSpawnCount = 0;
+    waveSpawnTimer = 0;
+    
+    UI.updateHUD();
+    AudioSys.ui();
+}
+
+function updateWaveLogic(dt) {
+    if (State.status !== 'playing') return;
+
+    // Spawning
+    if (waveSpawnCount < waveData.count) {
+        waveSpawnTimer -= dt;
+        if (waveSpawnTimer <= 0) {
+            waveSpawnTimer = waveData.interval;
+            spawnEnemy();
+            waveSpawnCount++;
+        }
+    }
+}
+
+function spawnEnemy() {
+    const enemy = getFromPool(pools.enemies, active.enemies, Enemy);
+    State.enemiesAlive++;
+    
+    // Pick path
+    const pathIds = [0,1,2,3];
+    // Enable more paths as waves progress
+    const activePaths = Math.min(4, 1 + Math.floor(State.wave / 3));
+    const pathIdx = Math.floor(Math.random() * activePaths);
+    
+    // Pick type based on weights
+    const r = Math.random();
+    let type = 0;
+    let wAcc = 0;
+    for(let i=0; i<3; i++) {
+        wAcc += waveData.weights[i];
+        if (r <= wAcc) { type = i; break; }
+    }
+    
+    enemy.init(type, PATHS[pathIdx]);
+    UI.updateHUD();
+}
+
+function checkWaveEnd() {
+    if (State.status === 'playing' && waveSpawnCount >= waveData.count && State.enemiesAlive <= 0 && State.hp > 0) {
+        State.status = 'wave_end';
+        // Wave clear bonus
+        const bonus = State.wave * 10;
+        addGold(bonus);
+        UI.spawnFloatingText(`Wave Clear! +${bonus}g`, new THREE.Vector3(0, 5, 0), true);
+        
+        if (State.wave >= C.TOTAL_WAVES) {
+            gameOver(true);
+        } else {
+            document.getElementById('start-wave-btn').classList.remove('hidden');
+            AudioSys.ui(); // Simple ping
+        }
+        UI.updateHUD();
+    }
+}
+
+let fireCooldown = 0;
+
+function updateCombat(dt) {
+    fireCooldown -= dt;
+    
+    // Find nearest enemy
+    let nearest = null;
+    let minD2 = C.CASTLE_RANGE * C.CASTLE_RANGE;
+    
+    for (const e of active.enemies) {
+        const d2 = e.mesh.position.lengthSq(); // Castle at 0,0,0
+        if (d2 < minD2) {
+            minD2 = d2;
+            nearest = e;
+        }
+    }
+    
+    if (nearest && fireCooldown <= 0) {
+        const proj = getFromPool(pools.projectiles, active.projectiles, Projectile);
+        proj.fire(nearest);
+        fireCooldown = C.CASTLE_FIRE_RATE;
+        
+        // Tiny recoil anim on towers
+        gsap.to(castle.scale, {y: 0.95, duration: 0.05, yoyo: true, repeat: 1});
+    }
+}
+
+function damageCastle(amt) {
+    if (State.status === 'over') return;
+    State.hp = Math.max(0, State.hp - amt);
+    updateCastleHPBar();
+    
+    // Screen Shake (via camera container if we had one, here modify camera pos slightly)
+    gsap.to(camera.position, {
+        x: camera.position.x + (Math.random()-0.5),
+        y: camera.position.y + (Math.random()-0.5),
+        duration: 0.05,
+        yoyo: true,
+        repeat: 3
+    });
+    
+    // Flash castle red
+    castle.children.forEach(c => {
+        if(c.material && c !== castle.hpBarRoot) {
+            if(!c.userData.origColor) c.userData.origColor = c.material.color.getHex();
+            c.material.color.setHex(C.COLORS.castleHurt);
+        }
+    });
+    setTimeout(() => {
+        castle.children.forEach(c => {
+            if(c.userData.origColor) c.material.color.setHex(c.userData.origColor);
+        });
+    }, 100);
+
+    AudioSys.lose(); // heavy hit sound
+
+    if (State.hp <= 0) {
+        gameOver(false);
+    }
+}
+
+function addGold(amt) {
+    State.gold += amt;
+    UI.updateHUD();
+}
+
+function updateCastleHPBar() {
+    const pct = State.hp / State.maxHp;
+    healthBarMesh.scale.x = Math.max(0.001, pct);
+    // Color shift green -> red
+    healthBarMesh.material.color.setHSL(pct * 0.3, 1, 0.5);
+    UI.updateHUD();
+}
+
+function gameOver(win) {
+    State.status = 'over';
+    UI.showScreen(win ? 'victory' : 'defeat');
+    if(win) AudioSys.win();
+}
+
+// --- UI MANAGER ---
+
+const UI = {
+    els: {
+        gold: document.getElementById('gold-display'),
+        wave: document.getElementById('wave-num'),
+        nextWave: document.getElementById('next-wave-num'),
+        enemies: document.getElementById('enemy-count'),
+        hpText: document.getElementById('hp-text'),
+        hpBar: document.getElementById('hp-bar-fill'),
+        dmgLvl: document.getElementById('dmg-lvl'),
+        dmgCost: document.getElementById('dmg-cost'),
+        hpLvl: document.getElementById('hp-lvl'),
+        hpCost: document.getElementById('hp-cost'),
+        repCost: document.getElementById('repair-cost'),
+        floatContainer: document.getElementById('floating-text-layer'),
+        muteBtn: document.getElementById('btn-mute')
+    },
+    init: () => {
+        // Button Bindings
+        document.getElementById('btn-play').onclick = () => {
+            AudioSys.init(); 
+            AudioSys.ui();
+            initGame();
+        };
+        
+        document.getElementById('start-wave-btn').onclick = startWave;
+        
+        document.getElementById('btn-upg-dmg').onclick = () => UI.buyUpgrade('dmg');
+        document.getElementById('btn-upg-hp').onclick = () => UI.buyUpgrade('hp');
+        document.getElementById('btn-repair').onclick = UI.buyRepair;
+        
+        document.getElementById('btn-pause').onclick = UI.togglePause;
+        document.getElementById('btn-resume').onclick = UI.togglePause;
+        
+        const restart = () => { UI.showScreen('start'); AudioSys.ui(); };
+        document.getElementById('btn-restart').onclick = restart;
+        document.getElementById('btn-restart-pause').onclick = () => { UI.togglePause(); restart(); };
+
+        UI.els.muteBtn.onclick = () => {
+            State.muted = !State.muted;
+            localStorage.setItem('cg_muted', State.muted);
+            UI.updateMuteIcon();
+            AudioSys.ui();
+            if(!State.muted) AudioSys.resume();
+        };
+        UI.updateMuteIcon();
+
+        // Quality Toggle
+        const qToggles = document.querySelectorAll('#quality-toggle .toggle-opt');
+        qToggles.forEach(el => {
+            if(el.dataset.q === State.quality) el.classList.add('active'); else el.classList.remove('active');
+            el.onclick = () => {
+                if(el.dataset.q === State.quality) return;
+                State.quality = el.dataset.q;
+                localStorage.setItem('cg_quality', State.quality);
+                // Crude reload to apply settings as they affect renderer init
+                location.reload(); 
+            }
+        });
+    },
+    updateMuteIcon: () => {
+        UI.els.muteBtn.textContent = State.muted ? '🔇' : '🔊';
+    },
+    updateHUD: () => {
+        UI.els.gold.textContent = State.gold;
+        UI.els.wave.textContent = State.wave;
+        UI.els.nextWave.textContent = Math.min(C.TOTAL_WAVES, State.wave + 1);
+        UI.els.enemies.textContent = (State.enemiesToSpawn - waveSpawnCount) + State.enemiesAlive;
+        
+        UI.els.hpText.textContent = `${formatNum(State.hp)}/${State.maxHp}`;
+        UI.els.hpBar.style.width = `${(State.hp/State.maxHp)*100}%`;
+        
+        UI.els.dmgLvl.textContent = State.dmgLvl;
+        const dCost = getCost(State.dmgLvl);
+        UI.els.dmgCost.textContent = dCost + 'g';
+        document.getElementById('btn-upg-dmg').disabled = State.gold < dCost || State.status === 'over';
+
+        UI.els.hpLvl.textContent = State.hpLvl;
+        const hCost = getCost(State.hpLvl);
+        UI.els.hpCost.textContent = hCost + 'g';
+        document.getElementById('btn-upg-hp').disabled = State.gold < hCost || State.status === 'over';
+
+        const missingHp = State.maxHp - State.hp;
+        const rCost = Math.ceil(missingHp * C.REPAIR_COST_PER_HP);
+        UI.els.repCost.textContent = missingHp > 0 ? rCost + 'g' : 'Full';
+        document.getElementById('btn-repair').disabled = State.gold < rCost || missingHp <= 0 || State.status === 'over';
+    },
+    buyUpgrade: (type) => {
+        const lvl = type === 'dmg' ? State.dmgLvl : State.hpLvl;
+        const cost = getCost(lvl);
+        if (State.gold >= cost) {
+            State.gold -= cost;
+            if(type === 'dmg') State.dmgLvl++; else State.hpLvl++;
+            updateStats();
+            UI.updateHUD();
+            AudioSys.ui();
+            UI.spawnFloatingText("UPGRADED!", new THREE.Vector3(0, 5, 0), true);
+        } else {
+            AudioSys.error();
+        }
+    },
+    buyRepair: () => {
+        const missing = State.maxHp - State.hp;
+        if(missing <= 0) return;
+        const cost = Math.ceil(missing * C.REPAIR_COST_PER_HP);
+        if (State.gold >= cost) {
+            State.gold -= cost;
+            State.hp = State.maxHp;
+            updateCastleHPBar();
+            UI.updateHUD();
+            AudioSys.ui(); // different sound preferable
+            spawnParticles(new THREE.Vector3(0,2,0), C.COLORS.proj, 15);
+        } else {
+            AudioSys.error();
+        }
+    },
+    showScreen: (screen) => {
+        ['start-screen', 'hud', 'pause-screen', 'gameover-screen'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        
+        if (screen === 'start') document.getElementById('start-screen').classList.remove('hidden');
+        if (screen === 'hud') document.getElementById('hud').classList.remove('hidden');
+        if (screen === 'pause') document.getElementById('pause-screen').classList.remove('hidden');
+        if (screen === 'victory' || screen === 'defeat') {
+            const go = document.getElementById('gameover-screen');
+            go.classList.remove('hidden');
+            go.className = `overlay pointer-events-auto ${screen}-screen`;
+            document.getElementById('go-title').textContent = screen === 'victory' ? 'VICTORY' : 'DEFEAT';
+            document.getElementById('go-stats').textContent = screen === 'victory' 
+                ? ' Citadel secured.' 
+                : ` Overrun on Wave ${State.wave}.`;
+        }
+    },
+    togglePause: () => {
+        if(State.status === 'over' || State.status === 'start') return;
+        AudioSys.ui();
+        if (State.status === 'paused') {
+            State.status = (State.enemiesAlive > 0 || waveSpawnCount < waveData.count) ? 'playing' : 'wave_end';
+            document.getElementById('pause-screen').classList.add('hidden');
+        } else {
+            State.status = 'paused';
+            document.getElementById('pause-screen').classList.remove('hidden');
+        }
+    },
+    // Project world pos to screen for floating HTML elements
+    spawnFloatingText: (text, worldPos, isCrit=false) => {
+        const el = document.createElement('div');
+        el.className = 'floating-text' + (isCrit ? ' crit' : '');
+        el.textContent = text;
+        UI.els.floatContainer.appendChild(el);
+        
+        // Map world pos to screen
+        tmpVec.copy(worldPos);
+        tmpVec.project(camera);
+        const x = (tmpVec.x * .5 + .5) * window.innerWidth;
+        const y = (tmpVec.y * -.5 + .5) * window.innerHeight;
+        
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        
+        // Clean up after anim
+        setTimeout(() => el.remove(), 800);
+    }
+};
+
+
+// --- MAIN LOOP ---
+
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    const dt = Math.min(clock.getDelta(), 0.1); // cap dt prevents spiral on lag
+
+    if (State.status === 'playing' || State.status === 'wave_end') {
+        controls.update();
+        
+        // Gentle auto-orbit
+        scene.rotation.y += 0.05 * dt;
+
+        // Billboard Castle HP
+        castle.hpBarRoot.lookAt(camera.position);
+        
+        updateWaveLogic(dt);
+
+        if (State.status === 'playing') {
+            updateCombat(dt);
+        }
+
+        // Update Entities
+        active.enemies.forEach(e => e.update(dt));
+        active.projectiles.forEach(p => p.update(dt));
+        active.particles.forEach(p => p.update(dt));
+    }
+
+    // Render
+    if(State.quality === 'high') {
+        composer.render();
+    } else {
+        renderer.render(scene, camera);
+    }
+}
+
+// --- BOOT ---
+initEngine();
+createWorld();
+UI.init();
+animate();
+
+</script>
+</body>
+</html>

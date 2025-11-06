@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citadel of Charles</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;500;700&family=Oxanium:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #05070f;
+            --bg-panel: rgba(13, 20, 34, 0.82);
+            --bg-panel-strong: rgba(18, 31, 52, 0.94);
+            --accent: #48c6ff;
+            --accent-strong: #14a9ff;
+            --accent-alt: #7a5bff;
+            --text-primary: #f4f8ff;
+            --text-muted: #9db4d8;
+            --border-glow: 0 0 18px rgba(72, 198, 255, 0.45);
+            --blur: blur(18px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Barlow', sans-serif;
+            background: radial-gradient(circle at 15% 20%, rgba(43, 82, 155, 0.45), transparent 45%),
+                        radial-gradient(circle at 80% 0%, rgba(111, 40, 190, 0.35), transparent 50%),
+                        radial-gradient(circle at 90% 80%, rgba(17, 106, 182, 0.3), transparent 55%),
+                        var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+            padding: 24px clamp(16px, 2vw, 32px);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(120deg, rgba(20, 32, 60, 0.2) 0%, transparent 55%),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 3px);
+            mix-blend-mode: screen;
+            opacity: 0.9;
+        }
+
+        .scanline {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(0deg, transparent 45%, rgba(0, 0, 0, 0.25) 48%, transparent 52%);
+            background-size: 100% 4px;
+            animation: scan 9s linear infinite;
+            opacity: 0.25;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .orb {
+            position: fixed;
+            width: 360px;
+            height: 360px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.55;
+            z-index: 0;
+        }
+
+        .orb-left {
+            background: rgba(107, 70, 255, 0.8);
+            top: 10%;
+            left: -140px;
+        }
+
+        .orb-right {
+            background: rgba(28, 174, 255, 0.8);
+            bottom: 12%;
+            right: -180px;
+        }
+
+        .main-grid {
+            position: relative;
+            display: grid;
+            grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(220px, 260px);
+            gap: clamp(16px, 2vw, 32px);
+            z-index: 1;
+            align-items: stretch;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 28px 24px;
+            background: var(--bg-panel);
+            border: 1px solid rgba(72, 198, 255, 0.18);
+            border-radius: 18px;
+            box-shadow:
+                0 24px 44px rgba(8, 16, 32, 0.55),
+                inset 0 0 0 1px rgba(134, 172, 230, 0.08);
+            backdrop-filter: blur(26px);
+        }
+
+        .sidebar-title {
+            font-family: 'Oxanium', sans-serif;
+            letter-spacing: 0.2em;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .divider {
+            width: 64px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(72, 198, 255, 0.65), transparent);
+        }
+
+        .nav-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .nav-item {
+            position: relative;
+            display: block;
+            padding: 16px 18px;
+            background: linear-gradient(135deg, rgba(18, 31, 52, 0.75), rgba(12, 22, 40, 0.85));
+            border: 1px solid rgba(72, 198, 255, 0.18);
+            border-radius: 14px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            overflow: hidden;
+        }
+
+        .nav-item::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 0% 0%, rgba(72, 198, 255, 0.45), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-item:hover {
+            transform: translateY(-4px);
+            border-color: rgba(72, 198, 255, 0.7);
+            box-shadow: var(--border-glow);
+        }
+
+        .nav-item:hover::before {
+            opacity: 1;
+        }
+
+        .nav-label {
+            font-family: 'Oxanium', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.04em;
+        }
+
+        .nav-desc {
+            margin-top: 6px;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+        }
+
+        main {
+            position: relative;
+            padding: clamp(28px, 4vw, 48px);
+            background: var(--bg-panel-strong);
+            border-radius: 22px;
+            border: 1px solid rgba(122, 91, 255, 0.3);
+            box-shadow:
+                0 32px 56px rgba(10, 18, 40, 0.7),
+                inset 0 0 0 1px rgba(134, 172, 230, 0.12);
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        main::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 25% 20%, rgba(72, 198, 255, 0.18), transparent 60%);
+            pointer-events: none;
+        }
+
+        .site-header {
+            position: relative;
+            display: grid;
+            justify-items: center;
+            text-align: center;
+            gap: 12px;
+            padding-bottom: clamp(18px, 3vw, 30px);
+        }
+
+        .site-header::after {
+            content: "";
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(20, 169, 255, 0.4) 0%, transparent 70%);
+            filter: blur(40px);
+            opacity: 0.6;
+            z-index: 0;
+            transform: translateY(10px);
+        }
+
+        .logo-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: clamp(12px, 2vw, 24px);
+            z-index: 1;
+        }
+
+        .logo {
+            width: clamp(280px, 30vw, 432px);
+            max-width: 100%;
+            filter: drop-shadow(0 0 16px rgba(20, 169, 255, 0.65));
+        }
+
+        h1 {
+            font-family: 'Oxanium', sans-serif;
+            font-size: clamp(2.4rem, 3vw, 3.4rem);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            z-index: 1;
+        }
+
+        .tagline {
+            max-width: 620px;
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            z-index: 1;
+        }
+
+        .cta-row {
+            margin-top: clamp(16px, 2vw, 26px);
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .cta {
+            padding: 14px 28px;
+            border-radius: 999px;
+            font-family: 'Oxanium', sans-serif;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .cta.primary {
+            background: linear-gradient(135deg, rgba(24, 173, 255, 0.9), rgba(122, 91, 255, 0.9));
+            box-shadow: 0 18px 28px rgba(16, 122, 188, 0.45);
+            color: var(--text-primary);
+        }
+
+        .cta.secondary {
+            background: rgba(13, 24, 45, 0.75);
+            border: 1px solid rgba(72, 198, 255, 0.45);
+            color: var(--text-primary);
+        }
+
+        .cta:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 22px 40px rgba(12, 150, 255, 0.4);
+        }
+
+        .feature-grid {
+            margin-top: clamp(36px, 4vw, 48px);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 22px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card {
+            position: relative;
+            padding: 22px 24px;
+            background: linear-gradient(145deg, rgba(14, 22, 41, 0.95), rgba(9, 15, 26, 0.95));
+            border: 1px solid rgba(72, 198, 255, 0.15);
+            border-radius: 18px;
+            box-shadow: inset 0 0 0 1px rgba(122, 91, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(72, 198, 255, 0.18), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(72, 198, 255, 0.45), rgba(122, 91, 255, 0.5));
+            display: grid;
+            place-items: center;
+            font-size: 0.95rem;
+            margin-bottom: 18px;
+            color: var(--bg-dark);
+            font-weight: 700;
+            font-family: 'Oxanium', sans-serif;
+        }
+
+        .feature-title {
+            font-family: 'Oxanium', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-copy {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        footer {
+            margin-top: clamp(36px, 4vw, 54px);
+            text-align: center;
+            font-size: 0.75rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(157, 180, 216, 0.65);
+        }
+
+        footer span {
+            color: rgba(72, 198, 255, 0.7);
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+            }
+
+            .sidebar-right {
+                order: 3;
+                grid-column: 1 / -1;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                justify-content: space-between;
+            }
+
+            .sidebar-right .nav-list {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .sidebar-right .nav-item {
+                flex: 1 1 200px;
+            }
+        }
+
+        @media (max-width: 980px) {
+            body {
+                padding: 16px;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: flex-start;
+                justify-content: center;
+            }
+
+            .sidebar .nav-list {
+                flex: 1 1 220px;
+            }
+
+            main {
+                order: -1;
+            }
+
+            .sidebar-title {
+                flex-basis: 100%;
+                text-align: center;
+            }
+
+            .divider {
+                display: none;
+            }
+        }
+
+        @media (max-width: 620px) {
+            .cta-row {
+                flex-direction: column;
+            }
+
+            .cta {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="orb orb-left"></div>
+    <div class="orb orb-right"></div>
+
+    <div class="main-grid">
+        <aside class="sidebar sidebar-left">
+            <div class="sidebar-title">Games</div>
+            <div class="divider"></div>
+            <div class="nav-list">
+                <a class="nav-item" href="https://citadelofcharles.space/platformer" target="_blank" rel="noopener">
+                    <div class="nav-label">Play Citadel</div>
+                    <div class="nav-desc">Flagship Platformer</div>
+                </a>
+                <a class="nav-item" href="https://citadelofcharles.space/bisondefence" target="_blank" rel="noopener">
+                    <div class="nav-label">Play Bison Defence</div>
+                    <div class="nav-desc">Real-Time Siege</div>
+                </a>
+                <a class="nav-item" href="https://citadelofcharles.space/adaarcana" target="_blank" rel="noopener">
+                    <div class="nav-label">Play ADA Arcana</div>
+                    <div class="nav-desc">Deckbuilding Rituals</div>
+                </a>
+            </div>
+        </aside>
+
+        <main>
+            <header class="site-header">
+                <div class="logo-wrap">
+                    <img src="logo.png" alt="Citadel of Charles logo" class="logo">
+                </div>
+                <h1>Citadel of Charles</h1>
+                <p class="tagline">
+                    Enter a neon-forged kingdom built for explorers, tacticians, and arcane architects.
+                    Seamlessly glide between worlds, command your bison legions, and unlock every relic
+                    of the Citadel.
+                </p>
+                <div class="cta-row">
+                    <a class="cta primary" href="https://citadelofcharles.space/platformer" target="_blank" rel="noopener">Launch Flagship</a>
+                    <a class="cta secondary" href="https://citadelofcharles.space" target="_blank" rel="noopener">Visit Command Center</a>
+                </div>
+            </header>
+
+            <section class="feature-grid">
+                <article class="feature-card">
+                    <div class="feature-icon">01</div>
+                    <div class="feature-title">Connected Realms</div>
+                    <p class="feature-copy">
+                        The Citadel hub keeps each universe within reach. Jump directly into Citadel, Bison Defence, or ADA Arcana without losing your squad.
+                    </p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon">02</div>
+                    <div class="feature-title">Play &amp; Collect</div>
+                    <p class="feature-copy">
+                        Complete runs, secure drops, and sync your spoils with the NFT forge. Progress rolls with you across every game mode.
+                    </p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon">03</div>
+                    <div class="feature-title">Seasonal Ops</div>
+                    <p class="feature-copy">
+                        Seasonal operations unlock timed challenges, rotating bosses, and community tournaments straight from the command console.
+                    </p>
+                </article>
+            </section>
+
+            <footer>
+                Citadel Status: <span>Operational</span> &mdash; Stay vigilant, Commander.
+            </footer>
+        </main>
+
+        <aside class="sidebar sidebar-right">
+            <div class="sidebar-title">NFT</div>
+            <div class="divider"></div>
+            <div class="nav-list">
+                <a class="nav-item" href="https://www.jpg.store/collection/citadelofcharles?tab=minting" target="_blank" rel="noopener">
+                    <div class="nav-label">Charles OG</div>
+                    <div class="nav-desc">Founder Series</div>
+                </a>
+                <a class="nav-item" href="https://www.jpg.store/collection/bisonislands" target="_blank" rel="noopener">
+                    <div class="nav-label">Bison Islands</div>
+                    <div class="nav-desc">Exploration Drops</div>
+                </a>
+                <a class="nav-item" href="https://www.jpg.store/collection/hallowcharles?tab=minting" target="_blank" rel="noopener">
+                    <div class="nav-label">HCharles</div>
+                    <div class="nav-desc">Seasonal Mint</div>
+                </a>
+            </div>
+        </aside>
+    </div>
+</body>
+</html>

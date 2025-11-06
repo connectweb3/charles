@@ -1,0 +1,656 @@
+/* Basic setup */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+:root {
+  --tint-color: transparent;
+  --tint-opacity: 0;
+
+  --btn-border: rgba(90, 255, 200, 0.85);
+  --btn-glow: rgba(40, 255, 160, 0.65);
+  --text: #e8ffe8;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  color: var(--text);
+  background: #000 url("bg.jpg") center center / cover no-repeat fixed;
+  overflow: hidden; /* keep the cockpit immersive */
+}
+
+/* TINT OVERLAY */
+#tint {
+  position: fixed;
+  inset: 0;
+  background-color: var(--tint-color);
+  opacity: var(--tint-opacity);
+  mix-blend-mode: color; /* colorizes the background image */
+  pointer-events: none; /* allow clicks through to buttons */
+  transition: background-color 0.35s ease, opacity 0.35s ease;
+}
+
+/* Tint states */
+body[data-tint="default"] {
+  --tint-color: transparent;
+  --tint-opacity: 0;
+}
+
+body[data-tint="blue"] {
+  --tint-color: rgb(56 146 255);
+  --tint-opacity: 0.32;
+}
+
+body[data-tint="red"] {
+  --tint-color: rgb(255 70 70);
+  --tint-opacity: 0.32;
+}
+
+/* BUTTONS over the three green cockpit screens */
+.screen-button {
+  position: absolute;
+  top: 57%;
+  left: 50%;
+  translate: -50% -50%;
+  -webkit-appearance: none;
+  appearance: none;
+
+  padding: 0;
+  width: auto;
+  height: auto;
+
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: #9cffc7;
+  font-family: "Press Start 2P", monospace;
+  font-weight: 400;
+  font-size: clamp(10px, 1.8vw, 20px);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+  backdrop-filter: none;
+}
+
+.screen-button:hover {
+  text-shadow: 0 0 8px rgba(140, 255, 190, 0.9), 0 0 2px rgba(255, 255, 255, 0.6);
+}
+
+.screen-button:active {
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+.screen-button:focus-visible {
+  outline: none;
+  text-shadow: 0 0 10px rgba(140, 255, 190, 0.9);
+}
+
+/* Positioning to sit on the left/center/right green screens in bg.jpg */
+.screen-button.left {
+  top: 66%;
+  left: 36%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  width: clamp(110px, 14vw, 180px);
+}
+
+.screen-button.center {
+  top: 64%;
+  left: 56%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  width: clamp(130px, 18vw, 220px);
+}
+
+.screen-button.right {
+  top: 66%;
+  left: 74%;
+  transform: translate(-50%, -50%) rotate(8deg);
+  width: clamp(110px, 14vw, 180px);
+}
+
+/* Active indicator */
+.screen-button.active {
+  text-shadow: 0 0 12px rgba(140, 255, 190, 0.95), 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Helper text */
+.helper {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  color: #dcffe6;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Screen-reader only text */
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Minor tweak when viewport is tall */
+@media (max-aspect-ratio: 4/3) {
+  .screen-button.left,
+  .screen-button.center,
+  .screen-button.right {
+    top: 60%;
+  }
+}
+
+/* Top-center site logo with neon green glow */
+.site-logo {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: auto; /* clickable logo */
+}
+
+.site-logo a {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.site-logo img {
+  display: block;
+  width: clamp(360px, 60vw, 840px);
+  height: auto;
+  /* Neon green glow */
+  filter: drop-shadow(0 0 6px #39ff14)
+          drop-shadow(0 0 14px rgba(57, 255, 20, 0.85))
+          drop-shadow(0 0 28px rgba(57, 255, 20, 0.6));
+}
+
+/* ========================= */
+/* Futuristic Neon Lightbox  */
+/* ========================= */
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(1200px 600px at 50% -10%, rgba(57, 255, 20, 0.15), transparent 60%),
+              rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px) saturate(1.1);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.lightbox-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.lightbox-panel {
+  position: relative;
+  width: min(96vw, 1600px);
+  max-height: 92vh;
+  overflow: auto;
+  border-radius: 16px;
+  padding: 24px 20px 18px;
+  background: linear-gradient(180deg, rgba(5, 15, 8, 0.92), rgba(5, 10, 6, 0.78));
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(57, 255, 20, 0.25) inset,
+    0 0 20px rgba(57, 255, 20, 0.35),
+    0 0 60px rgba(57, 255, 20, 0.25);
+}
+
+.lightbox-panel::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  padding: 2px;
+  background:
+    conic-gradient(from 0deg, rgba(57, 255, 20, 0.18), transparent 25%, rgba(57, 255, 20, 0.18) 50%, transparent 75%, rgba(57, 255, 20, 0.18));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: spin 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.lightbox-close {
+  position: sticky;
+  float: right;
+  top: 0;
+  right: 0;
+  margin: -6px -2px 8px 8px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(57, 255, 20, 0.5);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #abffbf;
+  font-size: 26px;
+  line-height: 36px;
+  text-align: center;
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.8));
+  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.lightbox-close:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.6);
+}
+
+.neon-title {
+  margin: 6px 6px 16px;
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(16px, 3.5vw, 28px);
+  color: #caffd6;
+  text-shadow:
+    0 0 8px rgba(57, 255, 20, 0.85),
+    0 0 20px rgba(57, 255, 20, 0.5);
+}
+
+.coming-soon {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+  padding: 24px;
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(22px, 6vw, 56px);
+  letter-spacing: 2px;
+  color: #caffd6;
+  text-shadow:
+    0 0 10px rgba(57, 255, 20, 0.95),
+    0 0 24px rgba(57, 255, 20, 0.6),
+    0 0 48px rgba(57, 255, 20, 0.45);
+  border: 1px dashed rgba(57, 255, 20, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(5, 20, 10, 0.45), rgba(5, 12, 8, 0.35));
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.35);
+}
+
+/* Common neon controls */
+.neon-button,
+.neon-tab {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid rgba(57, 255, 20, 0.55);
+  background: linear-gradient(180deg, rgba(0, 30, 10, 0.6), rgba(0, 18, 8, 0.7));
+  color: #b2ffd0;
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, color 0.2s ease;
+  display: inline-block;
+  text-decoration: none;
+}
+.neon-button:hover,
+.neon-tab:hover {
+  transform: translateY(-1px);
+  color: #eaffef;
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.55);
+}
+
+.neon-tab {
+  margin-right: 8px;
+  margin-bottom: 10px;
+  opacity: 0.8;
+}
+.neon-tab.active {
+  opacity: 1;
+  box-shadow: 0 0 16px rgba(57, 255, 20, 0.7);
+}
+
+/* Tokenomics bars */
+.lb-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 6px 12px;
+}
+.bars {
+  padding: 6px 6px 2px;
+}
+.bar {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 4px;
+  font-size: 12px;
+}
+.bar span {
+  color: #d9ffea;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+.track {
+  position: relative;
+  height: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(57, 255, 20, 0.35);
+  background: linear-gradient(90deg, rgba(5, 25, 12, 0.8), rgba(5, 18, 10, 0.8));
+  overflow: hidden;
+}
+.track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--val, 0%);
+  background: linear-gradient(90deg, rgba(57, 255, 20, 0.15), rgba(57, 255, 20, 0.8), rgba(57, 255, 20, 0.15));
+  box-shadow: 0 0 14px rgba(57, 255, 20, 0.55);
+}
+.track em {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  font-style: normal;
+  color: #e9ffef;
+  font-size: 11px;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+
+/* NFT views */
+.nft-views {
+  margin-top: 8px;
+}
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.nft-card {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  background: radial-gradient(120px 80px at 30% 20%, rgba(57, 255, 20, 0.06), transparent 60%),
+              rgba(2, 12, 6, 0.75);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.3);
+  overflow: hidden;
+  display: grid;
+  place-items: end center;
+  color: #caffd6;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.7);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.nft-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.6);
+}
+
+.nft-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: auto;
+  filter: brightness(0.9) saturate(1.1);
+}
+
+.nft-card .scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(57, 255, 20, 0.18) 50%, transparent 100%);
+  transform: translateY(-100%);
+  animation: scan 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  to { transform: translateY(100%); }
+}
+.nft-card span {
+  font-size: 12px;
+  padding: 8px;
+  opacity: 0.9;
+}
+.nft-card.spotlight {
+  outline: 2px solid rgba(57, 255, 20, 0.8);
+  box-shadow: 0 0 24px rgba(57, 255, 20, 0.9);
+}
+
+/* NFT Mint panel */
+.mint-panel {
+  display: grid;
+  gap: 12px;
+  padding: 6px;
+}
+.mint-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mint-row label {
+  width: 100px;
+  color: #dcffea;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+.qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qty-input {
+  width: 64px;
+  padding: 8px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(57, 255, 20, 0.4);
+  border-radius: 8px;
+  color: #eaffef;
+}
+.pill {
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  color: #caffd6;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Mint info list and CTA */
+.mint-info {
+  list-style: none;
+  margin: 6px 0 10px 0;
+  padding: 0;
+}
+.mint-info li {
+  font-size: 12px;
+  color: #eaffef;
+  margin: 4px 0;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+.mint-now {
+  margin-top: 6px;
+}
+
+/* Views switching */
+.view { display: none; }
+.view.active { display: block; }
+
+/* Utility list */
+.utility-grid {
+  display: grid;
+  gap: 10px;
+  padding: 4px 6px;
+}
+.util {
+  border: 1px solid rgba(57, 255, 20, 0.4);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #d9ffea;
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+}
+.util > summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+}
+.util > p,
+.util > button,
+.util .copy-status {
+  padding: 0 12px 12px 12px;
+  font-size: 12px;
+  color: #eaffef;
+}
+.copy-status {
+  display: inline-block;
+  min-height: 16px;
+  opacity: 0.9;
+}
+
+/* ========================= */
+/* Wallet Integration Styles */
+/* ========================= */
+
+/* Top-right CTA */
+.wallet-cta {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wallet-connect {
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.wallet-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  color: #caffd6;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+}
+.wallet-status[data-state="connected"] {
+  color: #b3ffd2;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.7);
+}
+
+/* Wallet modal: reuse lightbox look, tailor width */
+.wallet-panel {
+  width: min(96vw, 880px);
+}
+
+/* Wallet list grid */
+.wallet-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 8px;
+}
+
+.wallet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  background: linear-gradient(180deg, rgba(0, 30, 10, 0.55), rgba(0, 18, 8, 0.7));
+  color: #d9ffea;
+  text-decoration: none;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.wallet-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(57, 255, 20, 0.6);
+  border-color: rgba(57, 255, 20, 0.7);
+}
+
+.wallet-item .wi-icon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 0 6px rgba(57, 255, 20, 0.7));
+}
+.wallet-item .wi-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+.wallet-item .wi-tag {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(57, 255, 20, 0.45);
+  color: #caffd6;
+  background: rgba(0, 0, 0, 0.25);
+}
+.wallet-item .wi-tag.detected {
+  border-color: rgba(57, 255, 20, 0.7);
+  box-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+.wallet-item.missing {
+  opacity: 0.78;
+}
+.wallet-item.missing .wi-tag.missing {
+  border-color: rgba(255, 235, 130, 0.8);
+  color: #fff7c2;
+  box-shadow: 0 0 10px rgba(255, 225, 120, 0.45);
+}
+
+/* Status / message area in modal */
+.wallet-message {
+  margin: 8px 6px 4px;
+  font-size: 12px;
+  color: #eaffef;
+  opacity: 0.95;
+}
+#walletMessage[data-type="error"] {
+  color: #ffd0d0;
+  text-shadow: 0 0 10px rgba(255, 90, 90, 0.6);
+}
+#walletMessage[data-type="warn"] {
+  color: #fff2b3;
+  text-shadow: 0 0 10px rgba(255, 210, 90, 0.6);
+}
+#walletMessage[data-type="success"] {
+  color: #baffcc;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.6);
+}

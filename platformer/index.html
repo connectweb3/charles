@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Platformer Game</title>
+  <link rel="stylesheet" href="platformer.css">
+</head>
+<body>
+  <header id="pageHeader">
+    <img id="logo" src="logo.png" alt="Logo">
+  </header>
+
+  <div id="gameContainer">
+    <div id="sidebar">
+      <button id="profileBtn" title="Profile"><img src="visuals/profile.png" alt="Profile" class="icon"></button>
+      <button id="inventoryBtn" title="Inventory"><img src="visuals/inventory.png" alt="Inventory" class="icon"></button>
+      <button id="casinoBtn" title="Casino"><img src="visuals/casino.png" alt="Casino" class="icon"></button>
+      <button id="stakeBtn" title="Stake"><img src="visuals/stake.png" alt="Stake" class="icon"></button>
+    </div>
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+    <!-- In-game lower-right buttons -->
+    <div id="inGameButtons">
+      <button id="charlesBtn" class="in-game-btn" title="Charles Universe">
+        <span class="icon-planet" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="5.5" stroke="#00ffff" stroke-width="2" fill="rgba(0,255,255,0.1)"></circle>
+            <ellipse cx="12" cy="12" rx="10" ry="3.5" stroke="#00ffff" stroke-width="1.5" fill="none" transform="rotate(-20 12 12)"></ellipse>
+          </svg>
+        </span>
+        <span>Charles Universe</span>
+      </button>
+      <button id="bisonBtn" class="in-game-btn" title="Bison Homes">Bison Homes</button>
+      <a id="bisonDefenceLink" class="in-game-btn" href="../bisondefence/index.html" title="Bison Defence">Bison Defence</a>
+    </div>
+
+    <img id="flyingAd" src="ads/youradshere.png" alt="Advertisement" style="display: none;">
+  </div>
+
+  <footer id="pageFooter">
+    <div id="bottomButtons">
+      <a href="coc-whitepaper.html" class="futuristic-btn">$COC LITEPAPER</a>
+      <a href="game-whitepaper.html" class="futuristic-btn">GAME LITEPAPER</a>
+      <a href="#" id="airdropBtn" class="futuristic-btn">$COC AIRDROP</a>
+      <a href="https://www.jpg.store/collection/citadelofcharles?tab=minting" class="futuristic-btn">BUY NFT HERE</a>
+    </div>
+  </footer>
+
+  <!-- Airdrop Modal -->
+  <div id="airdropModal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Cardano Wallet Airdrop Submission</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="walletForm">
+          <label for="walletInput">Enter your Cardano Wallet Address:</label>
+          <input type="text" id="walletInput" placeholder="addr1..." required>
+          <button type="submit" class="futuristic-btn">Submit Wallet</button>
+        </form>
+        <div id="message" style="display: none; margin-top: 10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Username Modal -->
+  <div id="usernameModal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Enter Your Desired Username</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="usernameForm">
+          <label for="usernameInput">Username (for authentication and display):</label>
+          <input type="text" id="usernameInput" placeholder="Enter username" required minlength="3" maxlength="20">
+          <button type="submit" class="futuristic-btn">Start Game</button>
+        </form>
+        <div id="usernameMessage" style="display: none; margin-top: 10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory Modal (30 slots) -->
+  <div id="inventoryModal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Inventory</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div id="inventoryGrid" class="inventory-grid">
+          <div class="slot" data-idx="1"></div>
+          <div class="slot" data-idx="2"></div>
+          <div class="slot" data-idx="3"></div>
+          <div class="slot" data-idx="4"></div>
+          <div class="slot" data-idx="5"></div>
+          <div class="slot" data-idx="6"></div>
+          <div class="slot" data-idx="7"></div>
+          <div class="slot" data-idx="8"></div>
+          <div class="slot" data-idx="9"></div>
+          <div class="slot" data-idx="10"></div>
+          <div class="slot" data-idx="11"></div>
+          <div class="slot" data-idx="12"></div>
+          <div class="slot" data-idx="13"></div>
+          <div class="slot" data-idx="14"></div>
+          <div class="slot" data-idx="15"></div>
+          <div class="slot" data-idx="16"></div>
+          <div class="slot" data-idx="17"></div>
+          <div class="slot" data-idx="18"></div>
+          <div class="slot" data-idx="19"></div>
+          <div class="slot" data-idx="20"></div>
+          <div class="slot" data-idx="21"></div>
+          <div class="slot" data-idx="22"></div>
+          <div class="slot" data-idx="23"></div>
+          <div class="slot" data-idx="24"></div>
+          <div class="slot" data-idx="25"></div>
+          <div class="slot" data-idx="26"></div>
+          <div class="slot" data-idx="27"></div>
+          <div class="slot" data-idx="28"></div>
+          <div class="slot" data-idx="29"></div>
+          <div class="slot" data-idx="30"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Galaxy Modal -->
+  <div id="galaxyModal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content galaxy">
+      <div class="modal-header">
+        <h2>Charles Universe</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div id="galaxyInfo" class="galaxy-info"></div>
+        <div id="galaxyCanvasContainer" class="galaxy-canvas-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bison Homes Modal -->
+  <div id="bisonModal" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Bison Homes</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p style="color:#fff;margin:0;">Coming soon.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Three.js for Galaxy Modal -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="platformer.js"></script>
+</body>
+</html>

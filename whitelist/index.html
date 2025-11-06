@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Citadel of Charles — Whitelist Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Homepage look and feel -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="icon" type="image/png" href="../logo.png" />
+  <style>
+    /* Page-specific small tweaks (kept minimal to inherit homepage theme) */
+    body {
+      overflow-y: auto; /* Allow vertical scroll if needed */
+      overflow-x: hidden; /* Prevent stray horizontal scrollbar */
+    }
+    .wl-wrap {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 720px) {
+      .stat-grid { grid-template-columns: 1fr; }
+    }
+    .statline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid rgba(57, 255, 20, 0.35);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      font-size: 12px;
+      color: #eaffef;
+      box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .small { font-size: 12px; opacity: 0.9; }
+    .note { font-size: 12px; opacity: 0.95; color: #eaffef; }
+    .note.bad { color: #ffd0d0; text-shadow: 0 0 10px rgba(255, 90, 90, 0.6); }
+    .note.warn { color: #fff2b3; text-shadow: 0 0 10px rgba(255, 210, 90, 0.6); }
+    .note.good { color: #baffcc; text-shadow: 0 0 10px rgba(57, 255, 20, 0.6); }
+    .policy {
+      display: grid; gap: 8px; font-size: 12px; color: #eaffef;
+      border: 1px solid rgba(57, 255, 20, 0.35);
+      border-radius: 10px; padding: 10px;
+      background: rgba(0, 0, 0, 0.25);
+      box-shadow: 0 0 10px rgba(57, 255, 20, 0.25);
+    }
+    .policy .rowline { display: flex; gap: 10px; align-items: center; }
+    .copy {
+      cursor: pointer; border: 1px solid rgba(57, 255, 20, 0.45);
+      background: rgba(0, 0, 0, 0.25); color: #caffd6;
+      padding: 6px 10px; border-radius: 8px; font-size: 12px;
+      box-shadow: 0 0 8px rgba(57, 255, 20, 0.25);
+    }
+    .hr {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(57, 255, 20, 0.35), transparent);
+      margin: 10px 0;
+    }
+    .caps { text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; font-size: 11px; color: #caffd6; }
+    /* Hide lightbox close button for this static panel */
+    .lightbox-close[hidden] { display: none !important; }
+    /* Prevent inner panel horizontal scroll due to long IDs or grid content */
+    .lightbox-panel { overflow-x: hidden; }
+    /* Wrap long hex/policy IDs to avoid horizontal overflow */
+    #pCharles, #pBison { word-break: break-all; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <!-- Neon background/logo like homepage -->
+  <div class="site-logo">
+    <a href="../index.html" aria-label="Home">
+      <img src="../logo.png" alt="Home" />
+    </a>
+  </div>
+
+  <!-- Wallet CTA (top-right) -->
+  <div class="wallet-cta">
+    <button id="connectWalletBtn" class="neon-button wallet-connect" aria-haspopup="dialog" aria-controls="walletbox">Connect Wallet</button>
+    <span id="walletStatus" class="wallet-status" aria-live="polite"></span>
+  </div>
+
+  <!-- Wallet selector modal (same components as homepage) -->
+  <div id="walletbox" class="lightbox-backdrop wallet-backdrop" aria-hidden="true">
+    <div class="lightbox-panel wallet-panel" role="dialog" aria-modal="true" aria-labelledby="walletbox-title">
+      <button class="lightbox-close" aria-label="Close">&times;</button>
+      <h2 id="walletbox-title" class="neon-title">Select Wallet</h2>
+      <div id="walletList" class="wallet-list" role="listbox" aria-label="Available Cardano wallets"></div>
+      <div id="walletMessage" class="wallet-message" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Main content panel styled like the homepage lightbox -->
+  <div class="wl-wrap">
+    <div class="lightbox-panel" role="region" aria-labelledby="wl-title">
+      <button class="lightbox-close" hidden aria-label="Close">&times;</button>
+      <h2 id="wl-title" class="neon-title">Halloween Charles Airdrop Checker</h2>
+
+      <div class="note" style="margin: 6px 6px 12px;">
+        Connect your Cardano wallet and we’ll detect holdings for the tracked Policies
+      </div>
+
+      <div id="status" class="note">Awaiting wallet connection…</div>
+
+      <!-- Manual address/stake input -->
+      <div style="display:flex; flex-wrap: wrap; gap:10px; margin-top:10px;">
+        <input id="manualInput" type="text" inputmode="text" spellcheck="false" placeholder="Enter addr1... or stake1..." aria-label="Enter Cardano base address or stake address" style="flex:1 1 360px; min-width: 260px; max-width: 560px; padding:10px 12px; border-radius:10px; border:1px solid rgba(57,255,20,0.35); background: rgba(0,0,0,0.25); color:#eaffef; box-shadow: 0 0 8px rgba(57,255,20,0.25);" />
+        <button id="manualCheckBtn" class="neon-button">Check Address</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="caps" style="margin-bottom:6px;">Holdings</div>
+      <div class="stat-grid" id="result" style="display:none;">
+        <div class="statline">
+          <div>Charles NFTs held</div>
+          <div class="mono" id="countCharles">0</div>
+        </div>
+        <div class="statline">
+          <div>Bison Island NFTs held</div>
+          <div class="mono" id="countBison">0</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="caps" style="margin-bottom:6px;">Allocations</div>
+      <div class="stat-grid">
+        <div class="statline">
+          <div>Combo (1 Charles + 1 Bison) <span class="small">(Global pool: 60)</span></div>
+          <div class="mono" id="allocCombo">0</div>
+        </div>
+        <div class="statline">
+          <div>2x Charles <span class="small">(Global pool: 20)</span></div>
+          <div class="mono" id="allocCharlesOnly">0</div>
+        </div>
+        <div class="statline">
+          <div>2x Bison Island <span class="small">(Global pool: 20)</span></div>
+          <div class="mono" id="allocBisonOnly">0</div>
+        </div>
+        <div class="statline" style="border-style: solid;">
+          <div><strong>Total Eligible Allocations</strong></div>
+          <div class="mono" id="allocTotal">0</div>
+        </div>
+      </div>
+
+      <div class="note" id="explain" style="margin-top:8px;"></div>
+
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button id="refreshBtn" class="neon-button">Refresh Holdings</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="policy">
+        <div class="rowline"><strong>Policies</strong></div>
+        <div class="rowline">
+          <div>Charles</div>
+          <div class="mono small" id="pCharles">8ba415901810af78c8ae75239b0c61fc54f09850a4c32f4acd206308</div>
+          <button class="copy" data-copy="charles">Copy</button>
+        </div>
+        <div class="rowline">
+          <div>Bison Island</div>
+          <div class="mono small" id="pBison">584af8907c477e897ec19a1bbf34a6bb462ab8adbf51252eb11ce083</div>
+          <button class="copy" data-copy="bison">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSL (same as homepage) -->
+  <script type="module">
+    import * as CSL from "https://cdn.jsdelivr.net/npm/@emurgo/cardano-serialization-lib-asmjs@11.2.1/cardano_serialization_lib.js";
+    window.CardanoSerializationLib = CSL;
+  </script>
+
+  <!-- Whitelist logic: CIP-30 wallet connect + on-device counting (no Blockfrost) -->
+  <script>
+    // Policy IDs
+    const POLICY_CHARLES = "8ba415901810af78c8ae75239b0c61fc54f09850a4c32f4acd206308";
+    const POLICY_BISON   = "584af8907c477e897ec19a1bbf34a6bb462ab8adbf51252eb11ce083";
+
+    // Blockfrost (CORS-friendly) - uses public project_id header
+    // Note: Exposing keys client-side is inherently public. Rotate if abused.
+    const BLOCKFROST_PROJECT_ID = "mainneteJV1JebLx0eqrIQYY3eYEQeGqIWvOpCF";
+    const BLOCKFROST_API_BASE = "https://cardano-mainnet.blockfrost.io/api/v0";
+    // Simple in-memory cache to avoid repeated queries while typing
+    const HOLDINGS_CACHE = new Map();
+
+    // DOM helpers
+    const el = (id) => document.getElementById(id);
+    const statusEl = el("status");
+    const resultWrap = el("result");
+    const countCharlesEl = el("countCharles");
+    const countBisonEl = el("countBison");
+    const allocComboEl = el("allocCombo");
+    const allocCharlesOnlyEl = el("allocCharlesOnly");
+    const allocBisonOnlyEl = el("allocBisonOnly");
+    const allocTotalEl = el("allocTotal");
+    const explainEl = el("explain");
+
+    // Wallet UI elements (same ids/classes as homepage styles)
+    function getDOM() {
+      return {
+        connectBtn: document.getElementById("connectWalletBtn"),
+        status: document.getElementById("walletStatus"),
+        box: document.getElementById("walletbox"),
+        closeBtn: document.querySelector("#walletbox .lightbox-close"),
+        list: document.getElementById("walletList"),
+        msg: document.getElementById("walletMessage"),
+      };
+    }
+    function setMessage(text, type = "info") {
+      const { msg } = getDOM();
+      if (!msg) return;
+      msg.textContent = text || "";
+      msg.setAttribute("data-type", type);
+    }
+    function openWalletModal() {
+      const { box } = getDOM();
+      if (!box) return;
+      box.classList.add("open");
+      box.setAttribute("aria-hidden", "false");
+    }
+    function closeWalletModal() {
+      const { box } = getDOM();
+      if (!box) return;
+      box.classList.remove("open");
+      box.setAttribute("aria-hidden", "true");
+      setMessage("", "info");
+    }
+    function setConnectButtonMode(mode) {
+      const { connectBtn } = getDOM();
+      if (!connectBtn) return;
+      if (mode === "disconnect") {
+        connectBtn.textContent = "Disconnect";
+        connectBtn.setAttribute("data-mode", "disconnect");
+        connectBtn.setAttribute("aria-label", "Disconnect wallet");
+      } else {
+        connectBtn.textContent = "Connect Wallet";
+        connectBtn.setAttribute("data-mode", "connect");
+        connectBtn.setAttribute("aria-label", "Open wallet selector");
+      }
+    }
+
+    const STATE = {
+      api: null,
+      walletKey: null,
+      bech32: null,
+    };
+    const WALLETS = [
+      { key: "vespr", name: "Vespr", url: "https://vespr.xyz/", icon: "https://www.google.com/s2/favicons?domain=vespr.xyz&sz=32" },
+      { key: "eternl", name: "Eternl", url: "https://eternl.io/", icon: "https://eternl.io/favicon.ico" },
+      { key: "gerowallet", name: "Gero", url: "https://gerowallet.io/", icon: "https://gerowallet.io/favicon.ico" },
+      { key: "lace", name: "Lace", url: "https://www.lace.io/", icon: "https://www.lace.io/favicon.ico" },
+      { key: "typhoncip30", name: "Typhon", url: "https://typhonwallet.io/", icon: "https://typhonwallet.io/favicon.ico" },
+    ];
+
+    function hexToBytes(hex) {
+      if (!hex || typeof hex !== "string") return new Uint8Array();
+      const len = hex.length / 2;
+      const out = new Uint8Array(len);
+      for (let i = 0; i < len; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+      return out;
+    }
+    function bytesToHex(bytes) {
+      return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    function shortBech32(addr, head = 10, tail = 6) {
+      if (!addr) return "";
+      if (addr.length <= head + tail + 1) return addr;
+      return `${addr.slice(0, head)}…${addr.slice(-tail)}`;
+    }
+    function renderWalletList() {
+      const { list } = getDOM();
+      if (!list) return;
+      const detected = [];
+      const notDetected = [];
+      for (const w of WALLETS) {
+        const present = !!(window.cardano && window.cardano[w.key]);
+        (present ? detected : notDetected).push({ ...w, present });
+      }
+      const items = [];
+      for (const w of detected) {
+        items.push(`
+          <button class="wallet-item" role="option" data-wallet="${w.key}" aria-label="${w.name}">
+            <span class="wi-icon"><img src="${w.icon}" alt="${w.name} icon" width="18" height="18" loading="lazy"></span>
+            <span class="wi-label">${w.name}</span>
+            <span class="wi-tag detected">Detected</span>
+          </button>
+        `);
+      }
+      for (const w of notDetected) {
+        items.push(`
+          <a class="wallet-item missing" role="option" data-wallet="${w.key}" href="${w.url}" target="_blank" rel="noopener noreferrer" aria-label="Install ${w.name}">
+            <span class="wi-icon"><img src="${w.icon}" alt="${w.name} icon" width="18" height="18" loading="lazy"></span>
+            <span class="wi-label">${w.name}</span>
+            <span class="wi-tag missing">Install</span>
+          </a>
+        `);
+      }
+      list.innerHTML = items.join("");
+
+      if (detected.length === 0) {
+        setMessage("No Cardano wallets detected. Install one to continue (e.g., Vespr, Nami, Eternl).", "warn");
+      } else {
+        setMessage("Select a wallet to continue.", "info");
+      }
+    }
+    async function getBech32Address(api, CSL) {
+      try {
+        const used = await api.getUsedAddresses?.();
+        const arr = Array.isArray(used) ? used : [];
+        const hex = arr[0] || (api.getChangeAddress ? await api.getChangeAddress() : null);
+        if (!hex) return null;
+        const addr = CSL.Address.from_bytes(hexToBytes(hex));
+        return addr.to_bech32();
+      } catch {
+        return null;
+      }
+    }
+
+    // Count holdings from CIP-30 API (no external API)
+    async function countHoldingsFromApi(api, CSL) {
+      // First try aggregated balance
+      let countCharles = 0, countBison = 0;
+      try {
+        const balHex = await api.getBalance?.();
+        if (balHex) {
+          const value = CSL.Value.from_bytes(hexToBytes(balHex));
+          const ma = value.multiasset();
+          if (ma) {
+            const policies = ma.keys();
+            for (let i = 0; i < policies.len(); i++) {
+              const pol = policies.get(i);
+              const pid = bytesToHex(pol.to_bytes());
+              if (pid === POLICY_CHARLES || pid === POLICY_BISON) {
+                const assets = ma.get(pol);
+                const names = assets.keys();
+                for (let j = 0; j < names.len(); j++) {
+                  const nm = names.get(j);
+                  const qty = assets.get(nm); // BigNum
+                  const q = qty ? parseInt(qty.to_str(), 10) || 0 : 0;
+                  if (pid === POLICY_CHARLES) countCharles += q;
+                  if (pid === POLICY_BISON) countBison += q;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // ignore; fallback to UTxO scan
+      }
+
+      // If zero so far, fallback to scanning UTXOs
+      if (countCharles === 0 && countBison === 0) {
+        try {
+          const utxos = await api.getUtxos?.();
+          if (Array.isArray(utxos)) {
+            for (const u of utxos) {
+              const utxo = CSL.TransactionUnspentOutput.from_bytes(hexToBytes(u));
+              const out = utxo.output();
+              const value = out.amount();
+              const ma = value.multiasset();
+              if (!ma) continue;
+              const policies = ma.keys();
+              for (let i = 0; i < policies.len(); i++) {
+                const pol = policies.get(i);
+                const pid = bytesToHex(pol.to_bytes());
+                if (pid !== POLICY_CHARLES && pid !== POLICY_BISON) continue;
+                const assets = ma.get(pol);
+                const names = assets.keys();
+                for (let j = 0; j < names.len(); j++) {
+                  const nm = names.get(j);
+                  const qty = assets.get(nm);
+                  const q = qty ? parseInt(qty.to_str(), 10) || 0 : 0;
+                  if (pid === POLICY_CHARLES) countCharles += q;
+                  if (pid === POLICY_BISON) countBison += q;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      return { c: countCharles, b: countBison };
+    }
+
+    // CORS-safe path: prefer Blockfrost first (adds project_id header), fallback to Koios if Blockfrost fails
+    async function fetchHoldingsForInput(input) {
+      const key = input;
+      if (HOLDINGS_CACHE.has(key)) return HOLDINGS_CACHE.get(key);
+      try {
+        const res = await countHoldingsFromBlockfrost(input);
+        HOLDINGS_CACHE.set(key, res);
+        return res;
+      } catch (bfErr) {
+        try {
+          const res = await countHoldingsFromKoios(input);
+          HOLDINGS_CACHE.set(key, res);
+          return res;
+        } catch (koiosErr) {
+          // Surface the primary (Blockfrost) error if both fail
+          throw bfErr || koiosErr;
+        }
+      }
+    }
+
+    // Simple address classifiers
+    function isStakeAddress(s) {
+      return (
+        typeof s === "string" &&
+        (s.startsWith("stake1") || s.startsWith("stake_test1"))
+      );
+    }
+    function isBaseAddress(s) {
+      return (
+        typeof s === "string" &&
+        (s.startsWith("addr1") || s.startsWith("addr_test1"))
+      );
+    }
+
+    // Try to derive stake address from a base address using CSL (mainnet)
+    function deriveStakeFromBase(addr) {
+      try {
+        const CSL = window.CardanoSerializationLib || window.Cardano || window.CardanoWasm;
+        if (!CSL) return null;
+        const a = CSL.Address.from_bech32(addr);
+        const base = CSL.BaseAddress.from_address(a);
+        if (!base) return null;
+        const stakeCred = base.stake_cred();
+        if (!stakeCred) return null;
+        // Detect network from address prefix: mainnet (addr1) = 1, testnet (addr_test1) = 0
+        const netId = addr.startsWith("addr_test1") ? 0 : 1;
+        const reward = CSL.RewardAddress.new(netId, stakeCred);
+        const rewardAddr = reward.to_address().to_bech32();
+        return rewardAddr;
+      } catch {
+        return null;
+      }
+    }
+
+    function computeAllocations(c, b) {
+      const combo = Math.min(c, b);
+      const cLeft = c - combo;
+      const bLeft = b - combo;
+      const cPairs = Math.floor(cLeft / 2);
+      const bPairs = Math.floor(bLeft / 2);
+      const total = combo + cPairs + bPairs;
+      return { combo, cPairs, bPairs, total };
+    }
+    function renderCounts(c, b) {
+      countCharlesEl.textContent = String(c);
+      countBisonEl.textContent = String(b);
+    }
+    function renderAllocations(alloc) {
+      allocComboEl.textContent = String(alloc.combo);
+      allocCharlesOnlyEl.textContent = String(alloc.cPairs);
+      allocBisonOnlyEl.textContent = String(alloc.bPairs);
+      allocTotalEl.textContent = String(alloc.total);
+      const explain = [];
+      if (alloc.combo > 0) explain.push(`${alloc.combo} from ${alloc.combo}x (1 Charles + 1 Bison) pairs`);
+      if (alloc.cPairs > 0) explain.push(`${alloc.cPairs} from ${alloc.cPairs * 2} Charles (pairs)`);
+      if (alloc.bPairs > 0) explain.push(`${alloc.bPairs} from ${alloc.bPairs * 2} Bison (pairs)`);
+      explainEl.innerHTML = explain.length
+        ? `Breakdown: ${explain.join("; ")}.`
+        : `No eligible allocation pairs found with current holdings.`;
+    }
+    function setStatus(msg, tone = "note") {
+      statusEl.textContent = msg;
+      statusEl.className = `note ${tone !== "note" ? tone : ""}`.trim();
+    }
+
+    async function fetchJson(url, opts = {}) {
+      const res = await fetch(url, { ...opts, headers: { "Accept": "application/json", ...(opts.headers || {}) } });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} for ${url}`);
+      }
+      return res.json();
+    }
+
+    // Blockfrost fetch helper (adds project_id header)
+    async function fetchBFJson(url) {
+      if (!BLOCKFROST_PROJECT_ID) {
+        throw new Error("Blockfrost project_id missing.");
+      }
+      const res = await fetch(url, {
+        headers: {
+          "Accept": "application/json",
+          "project_id": BLOCKFROST_PROJECT_ID,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} for ${url}`);
+      }
+      return res.json();
+    }
+
+    // Count holdings using Blockfrost (handles CORS, no Koios dependency)
+    async function countHoldingsFromBlockfrost(input) {
+      let countCharles = 0, countBison = 0;
+
+      // Helper to add from Blockfrost "amounts" array (unit: "lovelace" or policy+asset hex)
+      function addFromAmounts(amounts) {
+        for (const a of Array.isArray(amounts) ? amounts : []) {
+          const unit = a.unit || "";
+          if (unit === "lovelace") continue;
+          const pid = unit.length >= 56 ? unit.slice(0, 56) : "";
+          const q = parseInt(a.quantity || "0", 10) || 0;
+          if (pid === POLICY_CHARLES) countCharles += q;
+          if (pid === POLICY_BISON) countBison += q;
+        }
+      }
+
+      // Stake address path: try aggregated assets; fallback to iterating addresses + utxos
+      if (isStakeAddress(input)) {
+        // Fast path: aggregated assets across all addresses of the account (less pagination than UTXOs)
+        let page = 1;
+        let usedAgg = false;
+        while (true) {
+          const url = `${BLOCKFROST_API_BASE}/accounts/${encodeURIComponent(input)}/addresses/assets?count=100&page=${page}`;
+          const data = await fetchBFJson(url).catch(() => null);
+          const arr = Array.isArray(data) ? data : [];
+          if (arr.length === 0) break;
+          usedAgg = true;
+          for (const row of arr) {
+            const unit = row.unit || "";
+            const q = parseInt(row.quantity || "0", 10) || 0;
+            const pid = unit.length >= 56 ? unit.slice(0, 56) : "";
+            if (pid === POLICY_CHARLES) countCharles += q;
+            if (pid === POLICY_BISON) countBison += q;
+          }
+          page++;
+          if (page > 20) break; // safety cap
+        }
+        if (!usedAgg || (countCharles === 0 && countBison === 0)) {
+          // Fallback: iterate stake's addresses and sum UTXOs
+          let addrPage = 1;
+          const addrs = [];
+          while (true) {
+            const url = `${BLOCKFROST_API_BASE}/accounts/${encodeURIComponent(input)}/addresses?count=100&page=${addrPage}`;
+            const data = await fetchBFJson(url);
+            const arr = Array.isArray(data) ? data : [];
+            if (arr.length === 0) break;
+            for (const row of arr) {
+              if (row.address) addrs.push(row.address);
+            }
+            addrPage++;
+            if (addrPage > 20) break; // safety cap
+          }
+          for (const addr of addrs) {
+            let utxoPage = 1;
+            while (true) {
+              const url = `${BLOCKFROST_API_BASE}/addresses/${encodeURIComponent(addr)}/utxos?count=100&page=${utxoPage}`;
+              const data = await fetchBFJson(url);
+              const arr = Array.isArray(data) ? data : [];
+              if (arr.length === 0) break;
+              for (const utxo of arr) {
+                addFromAmounts(utxo.amount);
+              }
+              utxoPage++;
+              if (utxoPage > 20) break; // safety cap
+            }
+          }
+        }
+      } else if (isBaseAddress(input)) {
+        // Base address: sum tokens across UTXOs (paginated)
+        let page = 1;
+        while (true) {
+          const url = `${BLOCKFROST_API_BASE}/addresses/${encodeURIComponent(input)}/utxos?count=100&page=${page}`;
+          const data = await fetchBFJson(url);
+          const arr = Array.isArray(data) ? data : [];
+          if (arr.length === 0) break;
+          for (const utxo of arr) {
+            addFromAmounts(utxo.amount);
+          }
+          page++;
+          if (page > 10) break; // safety cap
+        }
+      } else {
+        throw new Error("Enter a valid Cardano address (addr1...) or stake address (stake1...).");
+      }
+
+      return { c: countCharles, b: countBison };
+    }
+
+    // Use Koios to count holdings for an address or stake address (no API key required)
+    // For stake address:
+    //   - account_assets?stake_address=... (aggregated by stake key)
+    // For base address:
+    //   - address_assets?address=...
+    async function countHoldingsFromKoios(input) {
+      const base = "https://api.koios.rest/api/v1";
+      let countCharles = 0, countBison = 0;
+
+      if (isStakeAddress(input)) {
+        // Aggregated assets by stake key
+        const url = `${base}/account_assets?stake_address=${encodeURIComponent(input)}`;
+        const data = await fetchJson(url);
+        // data is typically an array of { stake_address, policy_id, asset_name, asset_qty }
+        for (const row of Array.isArray(data) ? data : []) {
+          const pid = row.policy_id;
+          const q = parseInt(row.asset_qty, 10) || 0;
+          if (pid === POLICY_CHARLES) countCharles += q;
+          if (pid === POLICY_BISON) countBison += q;
+        }
+      } else if (isBaseAddress(input)) {
+        // Assets at a single address
+        const url = `${base}/address_assets?address=${encodeURIComponent(input)}`;
+        const data = await fetchJson(url);
+        // data is typically an array of { address, policy_id, asset_name, quantity }
+        for (const row of Array.isArray(data) ? data : []) {
+          const pid = row.policy_id;
+          const q = parseInt(row.quantity, 10) || 0;
+          if (pid === POLICY_CHARLES) countCharles += q;
+          if (pid === POLICY_BISON) countBison += q;
+        }
+      } else {
+        throw new Error("Enter a valid Cardano address (addr1...) or stake address (stake1...).");
+      }
+
+      return { c: countCharles, b: countBison };
+    }
+
+    async function refreshHoldings() {
+      const CSL = window.CardanoSerializationLib || window.Cardano || window.CardanoWasm;
+      if (!CSL) {
+        setStatus("Cardano Serialization Library not loaded. Please refresh.", "bad");
+        return;
+      }
+      if (!STATE.api) {
+        setStatus("Connect a wallet to check holdings.", "warn");
+        resultWrap.style.display = "none";
+        return;
+      }
+      try {
+        setStatus("Reading holdings from wallet…");
+        const { c, b } = await countHoldingsFromApi(STATE.api, CSL);
+        renderCounts(c, b);
+        const alloc = computeAllocations(c, b);
+        renderAllocations(alloc);
+        const hint = (c + b) > 0 ? "Found NFTs for the tracked policies." : "No NFTs detected for the tracked policies.";
+        setStatus(hint, alloc.total > 0 ? "good" : (c + b) > 0 ? "note" : "warn");
+        resultWrap.style.display = "grid";
+      } catch (err) {
+        console.error(err);
+        setStatus(`Error: ${err.message || "Failed to read holdings"}`, "bad");
+        resultWrap.style.display = "none";
+      }
+    }
+
+    async function onWalletSelect(key) {
+      setMessage("Requesting wallet access…", "info");
+      if (!window.cardano || !window.cardano[key]) {
+        setMessage("Wallet not detected. Please install it.", "error");
+        return;
+      }
+      const CSL = window.CardanoSerializationLib || window.Cardano || window.CardanoWasm;
+      if (!CSL) {
+        setMessage("Cardano Serialization Library not loaded. Ensure the page is served over http(s) and refresh.", "error");
+        return;
+      }
+      try {
+        const provider = window.cardano[key];
+        const enabled = provider.isEnabled ? await provider.isEnabled() : false;
+        const api = enabled ? await provider.enable() : await provider.enable();
+
+        // Inform about network (1 = mainnet)
+        try {
+          const networkId = await api.getNetworkId?.();
+          if (typeof networkId === "number" && networkId !== 1) {
+            setMessage("Warning: You are not on mainnet. Counts may not reflect mainnet holdings.", "warn");
+          }
+        } catch {}
+
+        const bech32 = await getBech32Address(api, CSL);
+        STATE.api = api;
+        STATE.walletKey = key;
+        STATE.bech32 = bech32;
+
+        const { status } = getDOM();
+        if (status) {
+          status.textContent = bech32 ? `Connected: ${shortBech32(bech32)} ✓` : `Connected ✓`;
+          status.setAttribute("data-state", "connected");
+        }
+        setConnectButtonMode("disconnect");
+        setMessage("Wallet connected.", "success");
+
+        // Auto-refresh on connect
+        await refreshHoldings();
+        setTimeout(closeWalletModal, 450);
+      } catch (err) {
+        console.error(err);
+        setMessage("Wallet authorization failed or was rejected.", "error");
+      }
+    }
+
+    function disconnectWallet() {
+      const { status } = getDOM();
+      STATE.api = null;
+      STATE.walletKey = null;
+      STATE.bech32 = null;
+      if (status) {
+        status.textContent = "";
+        status.removeAttribute("data-state");
+      }
+      setConnectButtonMode("connect");
+      setMessage("Disconnected.", "info");
+      setStatus("Disconnected. Connect a wallet to check holdings.", "warn");
+      resultWrap.style.display = "none";
+    }
+
+    function wireEvents() {
+      const { connectBtn, box, closeBtn, list } = getDOM();
+
+      connectBtn?.addEventListener("click", () => {
+        const mode = connectBtn.getAttribute("data-mode") || "connect";
+        if (mode === "disconnect") {
+          disconnectWallet();
+        } else {
+          renderWalletList();
+          openWalletModal();
+        }
+      });
+
+      closeBtn?.addEventListener("click", closeWalletModal);
+      box?.addEventListener("click", (e) => { if (e.target === box) closeWalletModal(); });
+
+      list?.addEventListener("click", (e) => {
+        const btn = e.target.closest(".wallet-item");
+        if (!btn) return;
+        if (btn.tagName.toLowerCase() === "a") return; // install link
+        const key = btn.getAttribute("data-wallet");
+        if (key) onWalletSelect(key);
+      });
+
+      document.getElementById("refreshBtn")?.addEventListener("click", refreshHoldings);
+
+      // Manual input check
+      const manualBtn = document.getElementById("manualCheckBtn");
+      const manualInput = document.getElementById("manualInput");
+      manualBtn?.addEventListener("click", async () => {
+        const val = (manualInput?.value || "").trim();
+        if (!val) {
+          setStatus("Please enter a Cardano address (addr1...) or stake address (stake1...).", "warn");
+          return;
+        }
+        setStatus("Checking holdings for input address…");
+        resultWrap.style.display = "none";
+        try {
+          let queryVal = val;
+          // If a base address is provided, attempt to derive stake address to aggregate across all wallet addresses
+          if (isBaseAddress(val)) {
+            const stake = deriveStakeFromBase(val);
+            if (stake && isStakeAddress(stake)) {
+              queryVal = stake;
+            }
+          }
+          const { c, b } = await fetchHoldingsForInput(queryVal);
+          renderCounts(c, b);
+          const alloc = computeAllocations(c, b);
+          renderAllocations(alloc);
+          const hint = (c + b) > 0 ? "Found NFTs for the tracked policies." : "No NFTs detected for the tracked policies.";
+          setStatus(hint, alloc.total > 0 ? "good" : (c + b) > 0 ? "note" : "warn");
+          resultWrap.style.display = "grid";
+        } catch (err) {
+          console.error(err);
+          setStatus(`Error: ${err.message || "Failed to query holdings for input address"}`, "bad");
+        }
+      });
+      // Submit on Enter
+      manualInput?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") manualBtn?.click();
+      });
+
+      // Auto-check on typing (debounced) when a likely address is entered
+      const isLikelyAddress = (s) => (typeof s === "string") && ((s.startsWith("addr1") || s.startsWith("stake1") || s.startsWith("addr_test1") || s.startsWith("stake_test1")) && s.length > 25);
+
+      let inputDebounce;
+      let queryNonce = 0;
+
+      async function runCheck(val) {
+        const myNonce = ++queryNonce;
+        setStatus("Checking holdings for input address…");
+        resultWrap.style.display = "none";
+        try {
+          let queryVal = (val || "").trim();
+          // If base address, prefer aggregating by derived stake address
+          if (isBaseAddress(queryVal)) {
+            const stake = deriveStakeFromBase(queryVal);
+            if (stake && isStakeAddress(stake)) {
+              queryVal = stake;
+            }
+          }
+          const { c, b } = await fetchHoldingsForInput(queryVal);
+          if (myNonce !== queryNonce) return; // ignore stale results
+          renderCounts(c, b);
+          const alloc = computeAllocations(c, b);
+          renderAllocations(alloc);
+          const hint = (c + b) > 0 ? "Found NFTs for the tracked policies." : "No NFTs detected for the tracked policies.";
+          setStatus(hint, alloc.total > 0 ? "good" : (c + b) > 0 ? "note" : "warn");
+          resultWrap.style.display = "grid";
+        } catch (err) {
+          if (myNonce !== queryNonce) return;
+          console.error(err);
+          setStatus(`Error: ${err.message || "Failed to query holdings for input address"}`, "bad");
+        }
+      }
+
+      manualInput?.addEventListener("input", () => {
+        const val = (manualInput?.value || "").trim();
+        if (!isLikelyAddress(val)) {
+          return;
+        }
+        clearTimeout(inputDebounce);
+        inputDebounce = setTimeout(() => runCheck(val), 500);
+      });
+
+      // Copy buttons for policy ids
+      document.querySelectorAll(".copy").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const which = btn.dataset.copy;
+          const value = which === "charles" ? POLICY_CHARLES : POLICY_BISON;
+          navigator.clipboard.writeText(value).then(() => {
+            btn.textContent = "Copied";
+            setTimeout(() => btn.textContent = "Copy", 900);
+          });
+        });
+      });
+
+      // Initialize connect button
+      setConnectButtonMode("connect");
+    }
+
+    document.addEventListener("DOMContentLoaded", wireEvents);
+  </script>
+</body>
+</html>]
