@@ -452,6 +452,30 @@
       cursor: pointer;
     }
 
+    /* Used NFT visual state */
+    .inv-item.nft-used {
+      opacity: 0.32;
+      filter: grayscale(0.5);
+      border-color: rgba(255, 77, 77, 0.95) !important;
+      box-shadow: 0 0 10px rgba(255, 77, 77, 0.8) inset;
+    }
+
+    .inv-item.nft-used::after {
+      content: "USED";
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      padding: 2px 6px;
+      font-size: 8px;
+      font-weight: 800;
+      color: #ffffff;
+      background: rgba(255, 0, 0, 0.96);
+      border-radius: 4px;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+      letter-spacing: 1px;
+      pointer-events: none;
+    }
+
     /* Inventory card action tooltip */
     #inv-action-tooltip {
       position: fixed;
@@ -1352,7 +1376,7 @@
         <div class="profile-nft-name">Hallow Charles NFT</div>
         <div class="profile-nft-status" id="profile-hallow-status">Checking...</div>
       </div>
-      <div class="profile-row-label">NFT ➜ Pack Exchange (Demo)</div>
+      <div class="profile-row-label">NFT ➜ Pack Exchange</div>
       <div class="profile-nft-list">
         <button
           id="btn-exchange-bison-nft"
@@ -2861,113 +2885,94 @@
             return nft;
           },
 
-          // NFT -> Packs exchange helper used by external UI (off-chain demo)
+          // NFT -> Packs exchange helper wired to Supabase backend (live-style)
+          // Backend must:
+          //  - validate ownership
+          //  - burn/lock NFT
+          //  - mint/credit packs and mark NFT used in DB
           awardRandomPacksForNft: async (nftTypeKey) => {
             try {
               if (!currentUserId) {
                 showExchangeResultModal(
                   "NFT Exchange",
                   [
-                    "Wallet profile not linked to .Database",
+                    "Wallet profile not linked to database.",
                     "Reconnect wallet so the user can be created before NFT exchange."
                   ]
                 );
                 return;
               }
 
-              // Mark one NFT as used locally first
-              const used = Inventory.markOneNftUsed(nftTypeKey);
-              if (!used) {
+              if (!connectedWallet || !connectedWallet.api) {
                 showExchangeResultModal(
-                  "NFT Exchange Failed",
+                  "NFT Exchange",
                   [
-                    "No available NFT found in local inventory for this type.",
-                    "Ensure your wallet holds the NFT and profile sync has completed."
+                    "Connect your wallet before exchanging NFTs for packs."
                   ]
                 );
                 return;
               }
 
-              const packModule = await import("./pack.js");
-              const packTypes = packModule.PACK_TYPES || (window.PACK_TYPES || {});
-              const addPacksFn = packModule.addPacks || window.addPacks;
-              const labels = packModule.PACK_LABELS || (window.PACK_LABELS || {});
-              const typeValues = Object.values(packTypes || {});
-              if (!typeValues.length || typeof addPacksFn !== "function") {
-                showExchangeResultModal(
-                  "NFT Exchange Failed",
-                  [
-                    "Pack configuration is missing.",
-                    "Cannot credit random packs for NFT exchange."
-                  ]
-                );
-                return;
-              }
+              // Ensure local NFT inventory mirror exists
+              Inventory.ensureLocalNftInventory();
 
-              let packCount = 0;
-              let title = "";
-              if (nftTypeKey === "bison") {
-                packCount = 2;
-                title = "Bison NFT Exchange";
-              } else if (nftTypeKey === "charles") {
-                packCount = 1;
-                title = "Charles NFT Exchange";
-              } else if (nftTypeKey === "hallow") {
-                packCount = 1;
-                title = "Hallow Charles NFT Exchange";
-              } else {
-                showExchangeResultModal(
-                  "NFT Exchange Failed",
-                  ["Unsupported NFT type for pack exchange."]
-                );
-                return;
-              }
-
-              const awarded = [];
-              for (let i = 0; i < packCount; i++) {
-                const t = typeValues[Math.floor(Math.random() * typeValues.length)];
-                addPacksFn(t, 1);
-                awarded.push(labels?.[t] || t);
-              }
-
-              // Persist updated pack balances after award
-              const newBalances = (typeof getPackBalances === "function")
-                ? getPackBalances()
-                : (packModule.getPackBalances
-                    ? packModule.getPackBalances()
-                    : null);
-              if (newBalances) {
-                savePackBalances(currentUserId, newBalances);
-              }
-
-              // Persist NFT exchange (marks NFT as used in DB via trigger)
-              await recordNftExchange({
-                userId: currentUserId,
-                nft: {
-                  id: used.db_id || null,
-                  unit: used.unit,
-                  policy_id: used.policy_id,
-                  type: nftTypeKey.toUpperCase()
+              const res = await fetch("https://jralfkzdfajroshkpdln.supabase.co/functions/v1/exchange-nft", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  apikey: "${SUPABASE_ANON_KEY}"
                 },
-                awardedPacks: packCount,
-                awardedType: "RANDOM"
+                body: JSON.stringify({
+                  userId: currentUserId,
+                  nftType: nftTypeKey,
+                  stakeAddress: profileData.stakeAddress || null
+                })
               });
 
-              if (typeof packModule.renderProfilePackCounts === "function") {
-                packModule.renderProfilePackCounts();
-              } else if (typeof window.renderProfilePackCounts === "function") {
-                window.renderProfilePackCounts();
+              const data = await res.json().catch(() => ({}));
+
+              if (!res.ok || !data.success) {
+                showExchangeResultModal(
+                  "NFT Exchange Failed",
+                  [data.message || "Backend rejected NFT exchange request."]
+                );
+                return;
               }
 
+              // Mark NFT as used in localNftInventory for visual feedback
+              if (data.usedNftUnit && window.localNftInventory && window.localNftInventory[nftTypeKey]) {
+                const list = window.localNftInventory[nftTypeKey];
+                const target = list.find(x => x.unit === data.usedNftUnit);
+                if (target) target.used = true;
+              }
+
+              // Update pack balances if backend returned them
+              try {
+                const packModule = await import("./pack.js");
+                if (data.packBalances && typeof packModule.syncPackBalances === "function") {
+                  packModule.syncPackBalances(data.packBalances);
+                }
+                if (typeof packModule.renderProfilePackCounts === "function") {
+                  packModule.renderProfilePackCounts();
+                } else if (typeof window.renderProfilePackCounts === "function") {
+                  window.renderProfilePackCounts();
+                }
+              } catch (e) {
+                console.warn("Failed to sync pack balances after NFT exchange", e);
+              }
+
+              // Re-render inventory so used NFT appears red/USED
+              Inventory.render();
+
+              const awardedLines = Array.isArray(data.awardedPacks)
+                ? data.awardedPacks.map((p, i) => `Pack ${i + 1}: ${p}`)
+                : [];
+
               showExchangeResultModal(
-                title,
+                data.title || "NFT Exchange Successful",
                 [
-                  "Off-chain demo exchange successful.",
-                  `1 ${nftTypeKey.toUpperCase()} NFT marked as USED in local inventory: ${used.unit.slice(0, 8)}...`,
-                  `You received ${packCount} random pack${packCount > 1 ? "s" : ""}:`,
-                  ...awarded.map((name, i) => `Pack ${i + 1}: ${name}`),
-                  "",
-                  "Note: This is local/off-chain only. Implement real burn/lock + mint in your backend or smart contract."
+                  `1 ${nftTypeKey.toUpperCase()} NFT consumed: ${String(data.usedNftUnit || "").slice(0, 8)}...`,
+                  ...(awardedLines.length ? awardedLines : ["Packs credited to your account."])
                 ]
               );
             } catch (err) {
@@ -2976,7 +2981,7 @@
                 "NFT Exchange Failed",
                 [
                   "An unexpected error occurred during NFT exchange.",
-                  "Check console/logs for more details."
+                  "Check backend / logs for more details."
                 ]
               );
             }
